@@ -1,22 +1,22 @@
 from django.db import models
 from django.forms.models import model_to_dict
 from passlib.hash import pbkdf2_sha256
-
+from datetime import datetime, timedelta
 # Create your models here.
 
 class Agent(models.Model):
     first_name = models.CharField(max_length=20)
     last_name = models.CharField(max_length=20)
-    email = models.EmailField(max_length=40, unique=True)
+    email = models.EmailField(max_length=40, unique=True, error_messages= {'unique':"Este correo ya ha sido usado"})
     password = models.CharField(max_length=150)
     identifier = models.CharField(max_length=10, unique=True)
-    phone = models.CharField(max_length=9, unique=True)
+    phone = models.CharField(max_length=9, unique=True, error_messages= {'unique':"Este teléfono ya ha sido usado"})
     photo_url = models.CharField(max_length=100, blank=True)
     token = models.CharField(max_length=175)
 
-    def as_dict_agent(self):
+    def as_dict_agent(self, requests = True):
         result = model_to_dict(self, fields=None, exclude=['password','created_date','token'])
-        result['requests'] = [request.as_dict_user() for request in self.request_set.filter()]
+        if requests: result['requests'] = [request.as_dict_agent() for request in self.request_set.all()]
         return result
 
     def verify_password(self, password):
@@ -100,16 +100,26 @@ class Request(models.Model):
 
     agent = models.ForeignKey(Agent, on_delete=models.CASCADE)
     authority = models.ForeignKey(Authority, on_delete=models.CASCADE)
+    title = models.CharField(max_length=30)
     emergency = models.CharField(max_length=1, choices=EMERGENCY_OPTIONS)
     district = models.CharField(max_length=1, choices=DISTRICT_OPTIONS)
     province = models.CharField(max_length=1, choices=PROVINCE_OPTIONS)
     region = models.CharField(max_length=1, choices=REGION_OPTIONS)
     magnitude = models.CharField(max_length=1, choices=MAGNITUDE_OPTIONS)
-    date = models.DateField(auto_now_add=True)
+    deadline = models.DateTimeField(default=datetime.now() + timedelta(days=2))
+    date = models.DateTimeField(default=datetime.now)
+    closed = models.BooleanField(default=False)
+
+
+    def change_to_closed(self):
+        self.closed = True
+        self.save()
 
     def as_dict_agent(self):
         result = model_to_dict(self, fields=None, exclude=None)
+        result['agent'] = self.agent.as_dict_agent(False)
         result['authority'] = self.authority.as_dict_agent()
+        result['items'] = [request.as_dict_agent() for request in self.item_set.all()]
         return result
 
     def __str__(self):
@@ -120,6 +130,10 @@ class Item(models.Model):
     request = models.ForeignKey(Request, on_delete=models.CASCADE)
     product = models.CharField(max_length=20)
     amount = models.IntegerField()
+
+    def as_dict_agent(self):
+        result = model_to_dict(self, fields=None, exclude=None)
+        return result
 
     def __str__(self):
          return "Producto: {} - Cantidad: {} - Petición: {}".format(self.product, self.amount, self.request)

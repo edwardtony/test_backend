@@ -107,6 +107,7 @@ def user_info(request):
             user = Agent.objects.get(token=token)
             return JSONResponse(user.as_dict_agent())
         except Exception as e:
+            print(e)
             return HttpResponse(status=404)
     else:
         return HttpResponse(status=405)
@@ -130,22 +131,54 @@ def request_list(request, identifier):
         token = request.META['HTTP_AUTHORIZATION'].split(" ")[1]
 
         if token == user.token:
-            print(request.POST)
             data = JSONParser().parse(request)
-            print(data)
+            # print(data)
             data['agent'] = user.id
             serializer = RequestSerializer(data=data)
             if serializer.is_valid():
                 serializer.save()
-                job_requests = user.jobrequest_set.filter()
-                job_requests_dict = [job_request.as_dict_user() for job_request in job_requests]
-                return JSONResponse(job_requests_dict, status=201)
+                request = Request.objects.get(pk=serializer.data['id'])
+                for item in data['items']:
+                    Item(request= request, product= item['product'], amount= item['amount']).save()
+                requests = user.request_set.all()
+                requests_dict = [request.as_dict_agent() for request in requests]
+                return JSONResponse(requests_dict, status=201)
             print(serializer.errors)
             return JSONResponse(serializer.errors, status=400)
         else:
             return HttpResponse(status=401)
 
+@csrf_exempt
+def request_detail(request,identifier,pk_request):
+    """
+    Retrieve, update or delete a request.
+    """
+    try:
+        user = Agent.objects.get(identifier=identifier)
+        request = user.request_set.get(pk=pk_request)
+    except Agent.DoesNotExist:
+        return HttpResponse(status=404)
+    except Request.DoesNotExist:
+        return HttpResponse(status=404)
 
+    if request.method == 'GET':
+        serializer = RequestSerializer(request)
+        return JSONResponse(serializer.data)
+    elif request.method == 'DELETE':
+        token = request.META['HTTP_AUTHORIZATION'].split(" ")[1]
+        if token == user.token:
+            request.change_to_closed()
+            requests = user.request_set.all()
+            requests_dict = [request.as_dict_agent() for request in requests]
+            # photos = job_request.photo_set.all()
+            # for photo in photos:
+            #     simple_delete_job_request(photo)
+            # job_request.delete()
+            return JSONResponse(requests_dict)
+        else:
+            return HttpResponse(status=401)
+    else:
+        return HttpResponse(status=404)
 
 
 
