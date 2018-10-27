@@ -9,4 +9,6 @@ urlpatterns = [
     path('register/', views.register),
     path('login/', views.login),
 	path('user_info/', views.user_info),
+	path('request/<int:identifier>/', views.request_list),
+
 ]

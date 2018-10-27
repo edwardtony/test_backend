@@ -49,6 +49,10 @@ class Authority(models.Model):
     position = models.CharField(max_length=1, choices=POSITION_OPTIONS)
     photo_url = models.CharField(max_length=100)
 
+    def as_dict_agent(self):
+        result = model_to_dict(self, fields=None, exclude=None)
+        return result
+
     def __str__(self):
          return "Nombre: {} {}".format(self.first_name, self.last_name)
 
@@ -102,6 +106,11 @@ class Request(models.Model):
     region = models.CharField(max_length=1, choices=REGION_OPTIONS)
     magnitude = models.CharField(max_length=1, choices=MAGNITUDE_OPTIONS)
     date = models.DateField(auto_now_add=True)
+
+    def as_dict_agent(self):
+        result = model_to_dict(self, fields=None, exclude=None)
+        result['authority'] = self.authority.as_dict_agent()
+        return result
 
     def __str__(self):
          return "Agente: {} - Autoridad: {} - Emergencia: {} - Fecha: {}".format(self.agent, self.authority, self.emergency, self.date)

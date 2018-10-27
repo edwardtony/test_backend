@@ -5,9 +5,9 @@ from django.shortcuts import render, redirect
 from rest_framework.parsers import JSONParser
 from passlib.hash import pbkdf2_sha256
 from django.http import HttpResponse
-from user.serializers import *
 from django.conf import settings
 from mailjet_rest import Client
+from user.serializers import *
 from user.models import *
 import requests
 import random
@@ -113,34 +113,31 @@ def user_info(request):
 
 #---------------------------------JOB REQUEST-------------------------------------
 @csrf_exempt
-def job_request_list(request, identifier):
+def request_list(request, identifier):
     """
-    List all code job request, or create a new job request.
+    List all code request, or create a new request.
     """
     try:
         user = Agent.objects.get(identifier=identifier)
     except Agent.DoesNotExist:
         return HttpResponse(status=404)
     if request.method == 'GET':
-        job_requests = user.jobrequest_set.filter(deleted=False)
-        job_requests_dict = [job_request.as_dict_user() for job_request in job_requests]
-        return JSONResponse(job_requests_dict)
+        requests = user.request_set.filter()
+        requests_dict = [request.as_dict_agent() for request in requests]
+        return JSONResponse(requests_dict)
 
     elif request.method == 'POST':
         token = request.META['HTTP_AUTHORIZATION'].split(" ")[1]
 
         if token == user.token:
+            print(request.POST)
             data = JSONParser().parse(request)
             print(data)
-            data['min_date'] = data['min_date'][0:16]
-            data['max_date'] = data['max_date'][0:16]
-            data['user'] = user.id
-            data['subcategory'] = 1
-            serializer = JobRequestSerializer(data=data)
+            data['agent'] = user.id
+            serializer = RequestSerializer(data=data)
             if serializer.is_valid():
                 serializer.save()
-                job_request = JobRequest.objects.get(pk = serializer.data['id'])
-                job_requests = user.jobrequest_set.filter(deleted=False)
+                job_requests = user.jobrequest_set.filter()
                 job_requests_dict = [job_request.as_dict_user() for job_request in job_requests]
                 return JSONResponse(job_requests_dict, status=201)
             print(serializer.errors)
