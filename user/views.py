@@ -112,9 +112,9 @@ def user_info(request):
     else:
         return HttpResponse(status=405)
 
-#---------------------------------JOB REQUEST-------------------------------------
+#---------------------------------SOLICITUDE-------------------------------------
 @csrf_exempt
-def request_list(request, identifier):
+def solicitude_list(request, identifier):
     """
     List all code request, or create a new request.
     """
@@ -123,9 +123,9 @@ def request_list(request, identifier):
     except Agent.DoesNotExist:
         return HttpResponse(status=404)
     if request.method == 'GET':
-        requests = user.request_set.filter()
-        requests_dict = [request.as_dict_agent() for request in requests]
-        return JSONResponse(requests_dict)
+        solicitudes = user.request_set.filter()
+        solicitudes_dict = [solicitude.as_dict_agent() for solicitude in solicitudes]
+        return JSONResponse(solicitudes_dict)
 
     elif request.method == 'POST':
         token = request.META['HTTP_AUTHORIZATION'].split(" ")[1]
@@ -134,47 +134,47 @@ def request_list(request, identifier):
             data = JSONParser().parse(request)
             # print(data)
             data['agent'] = user.id
-            serializer = RequestSerializer(data=data)
+            serializer = SolicitudeSerializer(data=data)
             if serializer.is_valid():
                 serializer.save()
-                request = Request.objects.get(pk=serializer.data['id'])
+                solicitude = Solicitude.objects.get(pk=serializer.data['id'])
                 for item in data['items']:
-                    Item(request= request, product= item['product'], amount= item['amount']).save()
-                requests = user.request_set.all()
-                requests_dict = [request.as_dict_agent() for request in requests]
-                return JSONResponse(requests_dict, status=201)
+                    Item(solicitude= solicitude, product= item['product'], amount= item['amount']).save()
+                solicitudes = user.solicitude_set.all()
+                solicitudes_dict = [solicitude.as_dict_agent() for solicitude in solicitudes]
+                return JSONResponse(solicitudes_dict, status=201)
             print(serializer.errors)
             return JSONResponse(serializer.errors, status=400)
         else:
             return HttpResponse(status=401)
 
 @csrf_exempt
-def request_detail(request,identifier,pk_request):
+def solicitude_detail(request, identifier, pk_solicitude):
     """
     Retrieve, update or delete a request.
     """
     try:
         user = Agent.objects.get(identifier=identifier)
-        request = user.request_set.get(pk=pk_request)
+        solicitude = user.solicitude_set.get(pk=pk_solicitude)
     except Agent.DoesNotExist:
         return HttpResponse(status=404)
-    except Request.DoesNotExist:
+    except Solicitude.DoesNotExist:
         return HttpResponse(status=404)
 
     if request.method == 'GET':
-        serializer = RequestSerializer(request)
-        return JSONResponse(serializer.data)
+        serializer = SolicitudeSerializer(solicitude)
+        return JSONResponse(solicitude.as_dict_agent())
     elif request.method == 'DELETE':
         token = request.META['HTTP_AUTHORIZATION'].split(" ")[1]
         if token == user.token:
-            request.change_to_closed()
-            requests = user.request_set.all()
-            requests_dict = [request.as_dict_agent() for request in requests]
+            solicitude.change_to_closed()
+            solicitudes = user.solicitude_set.all()
+            solicitudes_dict = [solicitude.as_dict_agent() for solicitude in solicitudes]
             # photos = job_request.photo_set.all()
             # for photo in photos:
             #     simple_delete_job_request(photo)
             # job_request.delete()
-            return JSONResponse(requests_dict)
+            return JSONResponse(solicitudes_dict)
         else:
             return HttpResponse(status=401)
     else:

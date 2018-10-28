@@ -13,9 +13,9 @@ class AuthoritySerializer(serializers.ModelSerializer):
 		fields = '__all__'
 
         
-class RequestSerializer(serializers.ModelSerializer):
+class SolicitudeSerializer(serializers.ModelSerializer):
 	class Meta:
-		model = Request
+		model = Solicitude
 		fields = '__all__'
 
         

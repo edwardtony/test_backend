@@ -14,9 +14,9 @@ class Agent(models.Model):
     photo_url = models.CharField(max_length=100, blank=True)
     token = models.CharField(max_length=175)
 
-    def as_dict_agent(self, requests = True):
+    def as_dict_agent(self, solicitude = True):
         result = model_to_dict(self, fields=None, exclude=['password','created_date','token'])
-        if requests: result['requests'] = [request.as_dict_agent() for request in self.request_set.all()]
+        if solicitude: result['solicitudes'] = [solicitude.as_dict_agent() for solicitude in self.solicitude_set.all()]
         return result
 
     def verify_password(self, password):
@@ -56,7 +56,7 @@ class Authority(models.Model):
     def __str__(self):
          return "Nombre: {} {}".format(self.first_name, self.last_name)
 
-class Request(models.Model):
+class Solicitude(models.Model):
 
     EMERGENCY_OPTIONS = (
         ('1', 'Emergencia 1'),
@@ -119,7 +119,7 @@ class Request(models.Model):
         result = model_to_dict(self, fields=None, exclude=None)
         result['agent'] = self.agent.as_dict_agent(False)
         result['authority'] = self.authority.as_dict_agent()
-        result['items'] = [request.as_dict_agent() for request in self.item_set.all()]
+        result['items'] = [item.as_dict_agent() for item in self.item_set.all()]
         return result
 
     def __str__(self):
@@ -127,7 +127,7 @@ class Request(models.Model):
 
 class Item(models.Model):
 
-    request = models.ForeignKey(Request, on_delete=models.CASCADE)
+    solicitude = models.ForeignKey(Solicitude, on_delete=models.CASCADE)
     product = models.CharField(max_length=20)
     amount = models.IntegerField()
 
@@ -136,12 +136,12 @@ class Item(models.Model):
         return result
 
     def __str__(self):
-         return "Producto: {} - Cantidad: {} - Petición: {}".format(self.product, self.amount, self.request)
+         return "Producto: {} - Cantidad: {} - Petición: {}".format(self.product, self.amount, self.solicitude)
 
 class Photos(models.Model):
 
-    request = models.ForeignKey(Request, on_delete=models.CASCADE)
+    solicitude = models.ForeignKey(Solicitude, on_delete=models.CASCADE)
     url = models.CharField(max_length=100)
 
     def __str__(self):
-            return "URL: {} - Petición: {}".format(self.url, self.request)
+            return "URL: {} - Petición: {}".format(self.url, self.solicitude)
