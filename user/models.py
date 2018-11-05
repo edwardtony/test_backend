@@ -10,13 +10,13 @@ class Agent(models.Model):
     email = models.EmailField(max_length=40, unique=True, error_messages= {'unique':"Este correo ya ha sido usado"})
     password = models.CharField(max_length=150)
     identifier = models.CharField(max_length=10, unique=True)
-    phone = models.CharField(max_length=9, unique=True, error_messages= {'unique':"Este teléfono ya ha sido usado"})
+    phone = models.CharField(max_length=9, unique=False, error_messages= {'unique':"Este teléfono ya ha sido usado"})
     photo_url = models.CharField(max_length=100, blank=True)
     token = models.CharField(max_length=175)
 
     def as_dict_agent(self, solicitude = True):
-        result = model_to_dict(self, fields=None, exclude=['password','created_date','token'])
-        if solicitude: result['solicitudes'] = [solicitude.as_dict_agent() for solicitude in self.solicitude_set.all()]
+        result = model_to_dict(self, fields=None, exclude=['password','created_date'])
+        if solicitude: result['solicitudes'] = [solicitude.as_dict_agent() for solicitude in self.solicitude_set.all().order_by('-id')]
         return result
 
     def verify_password(self, password):
@@ -59,57 +59,57 @@ class Authority(models.Model):
 class Solicitude(models.Model):
 
     EMERGENCY_OPTIONS = (
-        ('1', 'Emergencia 1'),
-        ('2', 'Emergencia 2'),
-        ('3', 'Emergencia 3'),
-        ('4', 'Emergencia 4'),
-        ('5', 'Emergencia 5')
+        ('Emergencia 1', 'Emergencia 1'),
+        ('Emergencia 2', 'Emergencia 2'),
+        ('Emergencia 3', 'Emergencia 3'),
+        ('Emergencia 4', 'Emergencia 4'),
+        ('Emergencia 5', 'Emergencia 5')
     )
 
     DISTRICT_OPTIONS = (
-        ('1', 'Distrito 1'),
-        ('2', 'Distrito 2'),
-        ('3', 'Distrito 3'),
-        ('4', 'Distrito 4'),
-        ('5', 'Distrito 5')
+        ('Distrito 1', 'Distrito 1'),
+        ('Distrito 2', 'Distrito 2'),
+        ('Distrito 3', 'Distrito 3'),
+        ('Distrito 4', 'Distrito 4'),
+        ('Distrito 5', 'Distrito 5')
     )
 
     PROVINCE_OPTIONS = (
-        ('1', 'Provincia 1'),
-        ('2', 'Provincia 2'),
-        ('3', 'Provincia 3'),
-        ('4', 'Provincia 4'),
-        ('5', 'Provincia 5')
+        ('Provincia 1', 'Provincia 1'),
+        ('Provincia 2', 'Provincia 2'),
+        ('Provincia 3', 'Provincia 3'),
+        ('Provincia 4', 'Provincia 4'),
+        ('Provincia 5', 'Provincia 5')
     )
 
     REGION_OPTIONS = (
-        ('1', 'Región 1'),
-        ('2', 'Región 2'),
-        ('3', 'Región 3'),
-        ('4', 'Región 4'),
-        ('5', 'Región 5')
+        ('Región 1', 'Región 1'),
+        ('Región 2', 'Región 2'),
+        ('Región 3', 'Región 3'),
+        ('Región 4', 'Región 4'),
+        ('Región 5', 'Región 5')
     )
 
     MAGNITUDE_OPTIONS = (
-        ('1', 'Magnitud 1'),
-        ('2', 'Magnitud 2'),
-        ('3', 'Magnitud 3'),
-        ('4', 'Magnitud 4'),
-        ('5', 'Magnitud 5')
+        ('Magnitud 1', 'Magnitud 1'),
+        ('Magnitud 2', 'Magnitud 2'),
+        ('Magnitud 3', 'Magnitud 3'),
+        ('Magnitud 4', 'Magnitud 4'),
+        ('Magnitud 5', 'Magnitud 5')
     )
 
     agent = models.ForeignKey(Agent, on_delete=models.CASCADE)
     authority = models.ForeignKey(Authority, on_delete=models.CASCADE)
     title = models.CharField(max_length=30)
-    emergency = models.CharField(max_length=1, choices=EMERGENCY_OPTIONS)
-    district = models.CharField(max_length=1, choices=DISTRICT_OPTIONS)
-    province = models.CharField(max_length=1, choices=PROVINCE_OPTIONS)
-    region = models.CharField(max_length=1, choices=REGION_OPTIONS)
-    magnitude = models.CharField(max_length=1, choices=MAGNITUDE_OPTIONS)
+    emergency = models.CharField(max_length=20, choices=EMERGENCY_OPTIONS)
+    district = models.CharField(max_length=20, choices=DISTRICT_OPTIONS)
+    province = models.CharField(max_length=20, choices=PROVINCE_OPTIONS)
+    region = models.CharField(max_length=20, choices=REGION_OPTIONS)
+    magnitude = models.CharField(max_length=20, choices=MAGNITUDE_OPTIONS)
     deadline = models.DateTimeField(default=datetime.now() + timedelta(days=2))
     date = models.DateTimeField(default=datetime.now)
     closed = models.BooleanField(default=False)
-
+    image_url = models.CharField(max_length=200, blank=True)
 
     def change_to_closed(self):
         self.closed = True
@@ -119,7 +119,7 @@ class Solicitude(models.Model):
         result = model_to_dict(self, fields=None, exclude=None)
         result['agent'] = self.agent.as_dict_agent(False)
         result['authority'] = self.authority.as_dict_agent()
-        result['items'] = [item.as_dict_agent() for item in self.item_set.all()]
+        result['product_list'] = [item.as_dict_agent() for item in self.item_set.all()]
         return result
 
     def __str__(self):

@@ -1,3 +1,4 @@
+from django.core.files.storage import FileSystemStorage
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.renderers import JSONRenderer
 from django.core.validators import validate_email
@@ -7,8 +8,10 @@ from passlib.hash import pbkdf2_sha256
 from django.http import HttpResponse
 from django.conf import settings
 from mailjet_rest import Client
+from openpyxl import Workbook
 from user.serializers import *
 from user.models import *
+from datetime import datetime
 import requests
 import random
 import json
@@ -57,19 +60,19 @@ def generate_token(user):
     encoded = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm='HS256')
     return encoded.decode("utf-8")
 
+def get_data_from_request(request):
+    return request.POST.dict() if len(request.POST) else JSONParser().parse(request)
+
+
 #--------------------------------------------- AGENT ---------------------------------------------
 
 @csrf_exempt
 def register(request):
-
     if request.method == 'POST':
-        user = JSONParser().parse(request)
-        print(user)
-
+        user = get_data_from_request(request)
         user['password'] = pbkdf2_sha256.encrypt(user['password'],rounds=12000,salt_size=32)
         user['identifier'] = generate_identifier()
         user['token'] = generate_token(user)
-        print(len(user['token']))
 
         serializer = AgentSerializer(data=user)
 
@@ -87,7 +90,7 @@ def register(request):
 @csrf_exempt
 def login(request):
     if request.method == 'POST':
-        credentials = JSONParser().parse(request)
+        credentials = get_data_from_request(request)
         try:
             user = Agent.login(credentials)
             # user_dict = user.as_dict_user()
@@ -95,7 +98,8 @@ def login(request):
             token = user.token
             return JSONResponse({'token':token})
         except Agent.DoesNotExist as e:
-            return HttpResponse(status=404)
+            return JSONResponse({'token':''})
+    return HttpResponse(status=405)
 
 @csrf_exempt
 def user_info(request):
@@ -105,7 +109,7 @@ def user_info(request):
         try:
             token = request.META['HTTP_AUTHORIZATION'].split(" ")[1]
             user = Agent.objects.get(token=token)
-            return JSONResponse(user.as_dict_agent())
+            return JSONResponse({'user':user.as_dict_agent()})
         except Exception as e:
             print(e)
             return HttpResponse(status=404)
@@ -123,26 +127,32 @@ def solicitude_list(request, identifier):
     except Agent.DoesNotExist:
         return HttpResponse(status=404)
     if request.method == 'GET':
-        solicitudes = user.request_set.filter()
+        solicitudes = user.solicitude_set.filter().order_by('-id')
         solicitudes_dict = [solicitude.as_dict_agent() for solicitude in solicitudes]
-        return JSONResponse(solicitudes_dict)
+        return JSONResponse({'solicitudes':solicitudes_dict})
 
     elif request.method == 'POST':
         token = request.META['HTTP_AUTHORIZATION'].split(" ")[1]
 
         if token == user.token:
-            data = JSONParser().parse(request)
-            # print(data)
+            data = get_data_from_request(request)
+            print(data)
             data['agent'] = user.id
+            data['date'] = "2018-10-30T04:05"
+            data['deadline'] = "2018-11-1T04:05"
             serializer = SolicitudeSerializer(data=data)
             if serializer.is_valid():
                 serializer.save()
                 solicitude = Solicitude.objects.get(pk=serializer.data['id'])
-                for item in data['items']:
-                    Item(solicitude= solicitude, product= item['product'], amount= item['amount']).save()
-                solicitudes = user.solicitude_set.all()
+                if 'items' in data:
+                    for item in json.loads(request.POST.dict()['items']):
+                        Item(solicitude= solicitude, product= item['product'], amount= item['amount']).save()
+                if 'product_list' in data:
+                    for item in json.loads(request.POST.dict()['product_list']):
+                        Item(solicitude= solicitude, product= item['product'], amount= item['amount']).save()
+                solicitudes = user.solicitude_set.all().order_by('-id')
                 solicitudes_dict = [solicitude.as_dict_agent() for solicitude in solicitudes]
-                return JSONResponse(solicitudes_dict, status=201)
+                return JSONResponse({'solicitudes':solicitudes_dict}, status=201)
             print(serializer.errors)
             return JSONResponse(serializer.errors, status=400)
         else:
@@ -180,15 +190,57 @@ def solicitude_detail(request, identifier, pk_solicitude):
     else:
         return HttpResponse(status=404)
 
+@csrf_exempt
+def upload_image(request):
+    if request.method == 'POST' and request.FILES['upload']:
+        image = request.FILES['upload']
+        fs = FileSystemStorage()
+        path = str(random.randint(0,9999999999)) + ".png"
+        filename = fs.save(path, image)
+        print(filename)
+        return JSONResponse({'image_url': filename}, status=201)
+    return HttpResponse(status=405)
 
+#---------------------------------SOLICITUDE-------------------------------------
+@csrf_exempt
+def export_excel(request):
+    if request.method == 'GET':
+        solicitudes = Solicitude.objects.all()
+        wb = Workbook()
+        ws = wb.active
+        ws['B2'] = "REPORTE DE SOLICITUDES"
+        ws.merge_cells('B2:J2')
 
+        ws['B4'] = "Agente"
+        ws['C4'] = "Autoridad"
+        ws['D4'] = "Título"
+        ws['E4'] = "Emergencia"
+        ws['F4'] = "Distrito"
+        ws['G4'] = "Provincia"
+        ws['H4'] = "Región"
+        ws['I4'] = "Magnitud"
+        ws['J4'] = "Fecha"
 
+        start_index = 5
+        file_name = "ReporteSolicitudes {0}.xlsx".format(datetime.now().strftime("%d/%m/%y %H:%M"))
 
+        for solicitude in solicitudes:
+            ws.cell(row=start_index, column=2).value = solicitude.agent.first_name
+            ws.cell(row=start_index, column=3).value = solicitude.authority.first_name
+            ws.cell(row=start_index, column=4).value = solicitude.title
+            ws.cell(row=start_index, column=5).value = solicitude.emergency
+            ws.cell(row=start_index, column=6).value = solicitude.district
+            ws.cell(row=start_index, column=7).value = solicitude.province
+            ws.cell(row=start_index, column=8).value = solicitude.region
+            ws.cell(row=start_index, column=9).value = solicitude.magnitude
+            ws.cell(row=start_index, column=10).value = solicitude.date.strftime('%d/%m/%y')
+            start_index+=1
 
-
-
-
-
+        response = HttpResponse(content_type = "application/ms-excel")
+        content = "attachment; filename = {0}".format(file_name)
+        response['Content-Disposition'] = content
+        wb.save(response)
+        return response
 
 
 
