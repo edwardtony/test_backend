@@ -124,7 +124,7 @@ TIME_ZONE = 'America/Bogota'
 
 STATIC_URL = '/static/'
 
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 # LOGIN_REDIRECT_URL = '/account/home'
 
 STATICFILES_DIRS = (
