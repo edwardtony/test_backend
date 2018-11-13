@@ -1,1 +1,1 @@
-web: gunicorn asesoria.wsgi --log-file -
+web: gunicorn GEAPApi.wsgi --log-file -
