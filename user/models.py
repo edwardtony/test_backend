@@ -16,7 +16,7 @@ class Agent(models.Model):
 
     def as_dict_agent(self, solicitude = True):
         result = model_to_dict(self, fields=None, exclude=['password','created_date'])
-        if solicitude: result['solicitudes'] = [solicitude.as_dict_agent() for solicitude in self.solicitude_set.all().order_by('-id')]
+        if solicitude: result['solicitudes'] = [solicitude.as_dict_agent() for solicitude in Solicitude.objects.filter(closed=False, accepted=True).order_by('-id')]
         return result
 
     def verify_password(self, password):
@@ -109,6 +109,8 @@ class Solicitude(models.Model):
     deadline = models.DateTimeField(default=datetime.now() + timedelta(days=2))
     date = models.DateTimeField(default=datetime.now)
     closed = models.BooleanField(default=False)
+    accepted = models.BooleanField(default=False)
+    image_accepted = models.BooleanField(default=False)
     image_url = models.CharField(max_length=200, blank=True)
 
     def change_to_closed(self):

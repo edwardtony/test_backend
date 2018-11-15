@@ -84,7 +84,8 @@ def register(request):
             serializer.save()
             user_return = Agent.objects.get(pk= serializer.data['id'])
             return JSONResponse(user_return.as_dict_agent(), status=201)
-        return JSONResponse(serializer.errors, status=404)
+        print(serializer.errors)
+        return JSONResponse(serializer.errors, status=400)
     return HttpResponse(status=404)
 
 @csrf_exempt
@@ -109,6 +110,7 @@ def user_info(request):
         try:
             token = request.META['HTTP_AUTHORIZATION'].split(" ")[1]
             user = Agent.objects.get(token=token)
+            print(user.as_dict_agent())
             return JSONResponse({'user':user.as_dict_agent()})
         except Exception as e:
             print(e)
@@ -127,7 +129,7 @@ def solicitude_list(request, identifier):
     except Agent.DoesNotExist:
         return HttpResponse(status=404)
     if request.method == 'GET':
-        solicitudes = user.solicitude_set.filter().order_by('-id')
+        solicitudes = Solicitude.objects.filter(closed=False, accepted=True).order_by('-id')
         solicitudes_dict = [solicitude.as_dict_agent() for solicitude in solicitudes]
         return JSONResponse({'solicitudes':solicitudes_dict})
 
@@ -150,7 +152,7 @@ def solicitude_list(request, identifier):
                 if 'product_list' in data:
                     for item in json.loads(request.POST.dict()['product_list']):
                         Item(solicitude= solicitude, product= item['product'], amount= item['amount']).save()
-                solicitudes = user.solicitude_set.all().order_by('-id')
+                solicitudes = Solicitude.objects.filter(closed=False, accepted=True).order_by('-id')
                 solicitudes_dict = [solicitude.as_dict_agent() for solicitude in solicitudes]
                 return JSONResponse({'solicitudes':solicitudes_dict}, status=201)
             print(serializer.errors)
