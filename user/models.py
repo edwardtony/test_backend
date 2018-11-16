@@ -16,7 +16,7 @@ class Agent(models.Model):
 
     def as_dict_agent(self, solicitude = True):
         result = model_to_dict(self, fields=None, exclude=['password','created_date'])
-        if solicitude: result['solicitudes'] = [solicitude.as_dict_agent() for solicitude in Solicitude.objects.filter(closed=False, accepted=True).order_by('-id')]
+        if solicitude: result['solicitudes'] = [solicitude.as_dict_agent() for solicitude in Solicitude.objects.filter(closed=False, accepted=True, deadline__gte=datetime.now()).order_by('-id')]
         return result
 
     def verify_password(self, password):
@@ -28,11 +28,54 @@ class Agent(models.Model):
         if result:
             return userTemp
         else:
-            raise User.DoesNotExist
+            raise Agent.DoesNotExist
             return 0
 
     def __str__(self):
          return "Nombre: {} {} - Email: {}".format(self.first_name, self.last_name,self.email)
+
+class Focal(models.Model):
+
+    name = models.CharField(max_length=20)
+    RUC_or_DNI = models.CharField(max_length=11)
+
+    def as_dict_agent(self):
+        result = model_to_dict(self, fields=None, exclude=None)
+        return result
+
+    def __str__(self):
+         return "Nombre: {} {}".format(self.name, self.RUC_or_DNI)
+
+class EmpresaFocal(models.Model):
+
+    name = models.CharField(max_length=20)
+    RUC_or_DNI = models.CharField(max_length=11)
+    identifier = models.CharField(max_length=11)
+    token = models.CharField(max_length=175)
+    photo_url = models.CharField(max_length=100, blank=True)
+    email = models.EmailField(max_length=40, unique=True, error_messages= {'unique':"Este correo ya ha sido usado"})
+    password = models.CharField(max_length=150)
+
+    def login(credentials):
+        userTemp = EmpresaFocal.objects.get(email=credentials['email'])
+        result = userTemp.verify_password(credentials['password'])
+        if result:
+            return userTemp
+        else:
+            raise EmpresaFocal.DoesNotExist
+            return 0
+
+    def verify_password(self, password):
+        return pbkdf2_sha256.verify(password,self.password)
+
+    def as_dict_agent(self, solicitude = True):
+        result = model_to_dict(self, fields=None, exclude=['password'])
+        if solicitude: result['solicitudes'] = [solicitude.as_dict_agent() for solicitude in Solicitude.objects.filter(closed=False, accepted=True, deadline__gte=datetime.now()).order_by('-id')]
+        return result
+
+    def __str__(self):
+         return "Nombre: {} {}".format(self.name, self.RUC_or_DNI)
+
 
 class Authority(models.Model):
 
@@ -100,14 +143,15 @@ class Solicitude(models.Model):
 
     agent = models.ForeignKey(Agent, on_delete=models.CASCADE)
     authority = models.ForeignKey(Authority, on_delete=models.CASCADE)
+    focal = models.ForeignKey(Focal, on_delete=models.CASCADE, blank=True, null=True)
     title = models.CharField(max_length=30)
     emergency = models.CharField(max_length=20, choices=EMERGENCY_OPTIONS)
     district = models.CharField(max_length=20, choices=DISTRICT_OPTIONS)
     province = models.CharField(max_length=20, choices=PROVINCE_OPTIONS)
     region = models.CharField(max_length=20, choices=REGION_OPTIONS)
-    magnitude = models.CharField(max_length=20, choices=MAGNITUDE_OPTIONS)
-    deadline = models.DateTimeField(default=datetime.now() + timedelta(days=2))
+    magnitude = models.CharField(max_length=20, choices=MAGNITUDE_OPTIONS, blank=True)
     date = models.DateTimeField(default=datetime.now)
+    deadline = models.DateTimeField(default=datetime.now() + timedelta(days=2))
     closed = models.BooleanField(default=False)
     accepted = models.BooleanField(default=False)
     image_accepted = models.BooleanField(default=False)
@@ -121,6 +165,8 @@ class Solicitude(models.Model):
         result = model_to_dict(self, fields=None, exclude=None)
         result['agent'] = self.agent.as_dict_agent(False)
         result['authority'] = self.authority.as_dict_agent()
+        if self.focal :
+            result['focal'] = self.focal.as_dict_agent()
         result['product_list'] = [item.as_dict_agent() for item in self.item_set.all()]
         return result
 
@@ -132,6 +178,7 @@ class Item(models.Model):
     solicitude = models.ForeignKey(Solicitude, on_delete=models.CASCADE)
     product = models.CharField(max_length=20)
     amount = models.IntegerField()
+    help = models.IntegerField(blank=True, null=True)
 
     def as_dict_agent(self):
         result = model_to_dict(self, fields=None, exclude=None)

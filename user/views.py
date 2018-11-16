@@ -86,35 +86,100 @@ def register(request):
             return JSONResponse(user_return.as_dict_agent(), status=201)
         print(serializer.errors)
         return JSONResponse(serializer.errors, status=400)
-    return HttpResponse(status=404)
+    return HttpResponse(status=405)
 
 @csrf_exempt
 def login(request):
+    print("Login")
+
     if request.method == 'POST':
         credentials = get_data_from_request(request)
+        print(credentials)
         try:
             user = Agent.login(credentials)
-            # user_dict = user.as_dict_user()
-            # return JSONResponse(user_dict)
             token = user.token
+            print("USER", token)
             return JSONResponse({'token':token})
         except Agent.DoesNotExist as e:
-            return JSONResponse({'token':''})
+            print(e)
+
+        print(credentials)
+        try:
+            focal = EmpresaFocal.login(credentials)
+            token = focal.token
+            print("FOCAL", token)
+            return JSONResponse({'token':token})
+        except EmpresaFocal.DoesNotExist as e:
+            print(e)
+
+        return JSONResponse({'token':''})
     return HttpResponse(status=405)
 
 @csrf_exempt
 def user_info(request):
     if request.method == 'GET':
         if 'HTTP_AUTHORIZATION' not in request.META: return HttpResponse(status=403)
-
+        print(request.META['HTTP_AUTHORIZATION'])
+        token = request.META['HTTP_AUTHORIZATION'].split(" ")[1]
         try:
-            token = request.META['HTTP_AUTHORIZATION'].split(" ")[1]
             user = Agent.objects.get(token=token)
-            print(user.as_dict_agent())
-            return JSONResponse({'user':user.as_dict_agent()})
+            print("USER", user)
+            return JSONResponse({'login':{'user':user.as_dict_agent(), 'focal':None}})
         except Exception as e:
             print(e)
-            return HttpResponse(status=404)
+
+        try:
+            focal = EmpresaFocal.objects.get(token=token)
+            print("FOCAL", focal)
+            return JSONResponse({'login':{'focal':focal.as_dict_agent(), 'user':None}})
+        except Exception as e:
+            print(e)
+
+        return HttpResponse(status=404)
+    else:
+        return HttpResponse(status=405)
+
+
+
+#---------------------------------SOLICITUDE-------------------------------------
+@csrf_exempt
+def donate(request, identifier):
+    """
+    List all code request, or create a new request.
+    """
+    try:
+        user = Agent.objects.get(identifier=identifier)
+    except Agent.DoesNotExist:
+        return HttpResponse(status=404)
+    if request.method == 'POST':
+        token = request.META['HTTP_AUTHORIZATION'].split(" ")[1]
+
+        if token == user.token:
+            data = get_data_from_request(request)
+            return JSONResponse({}, status=201)
+
+        #     print(data)
+        #     data['agent'] = user.id
+        #     # data['date'] = "2018-10-30T04:05"
+        #     # data['deadline'] = "2018-11-1T04:05"
+        #     serializer = SolicitudeSerializer(data=data)
+        #     if serializer.is_valid():
+        #         serializer.save()
+        #         solicitude = Solicitude.objects.get(pk=serializer.data['id'])
+        #         if 'items' in data:
+        #             for item in json.loads(request.POST.dict()['items']):
+        #                 Item(solicitude= solicitude, product= item['product'], amount= item['amount']).save()
+        #         if 'product_list' in data:
+        #             for item in json.loads(request.POST.dict()['product_list']):
+        #                 Item(solicitude= solicitude, product= item['product'], amount= item['amount']).save()
+        #         solicitudes = Solicitude.objects.filter(closed=False, accepted=True, deadline__gte=datetime.now()).order_by('-id')
+        #         solicitudes_dict = [solicitude.as_dict_agent() for solicitude in solicitudes]
+        #         return JSONResponse({'solicitudes':solicitudes_dict}, status=201)
+        #     print(serializer.errors)
+            return JSONResponse(serializer.errors, status=400)
+        else:
+            return HttpResponse(status=401)
+
     else:
         return HttpResponse(status=405)
 
@@ -124,24 +189,24 @@ def solicitude_list(request, identifier):
     """
     List all code request, or create a new request.
     """
-    try:
-        user = Agent.objects.get(identifier=identifier)
-    except Agent.DoesNotExist:
-        return HttpResponse(status=404)
+
     if request.method == 'GET':
-        solicitudes = Solicitude.objects.filter(closed=False, accepted=True).order_by('-id')
+        solicitudes = Solicitude.objects.filter(closed=False, accepted=True, deadline__gte=datetime.now()).order_by('-id')
         solicitudes_dict = [solicitude.as_dict_agent() for solicitude in solicitudes]
         return JSONResponse({'solicitudes':solicitudes_dict})
 
     elif request.method == 'POST':
+        try:
+            user = Agent.objects.get(identifier=identifier)
+        except Agent.DoesNotExist:
+            return HttpResponse(status=404)
         token = request.META['HTTP_AUTHORIZATION'].split(" ")[1]
 
         if token == user.token:
             data = get_data_from_request(request)
-            print(data)
             data['agent'] = user.id
-            data['date'] = "2018-10-30T04:05"
-            data['deadline'] = "2018-11-1T04:05"
+            # data['date'] = "2018-10-30T04:05"
+            # data['deadline'] = "2018-11-1T04:05"
             serializer = SolicitudeSerializer(data=data)
             if serializer.is_valid():
                 serializer.save()
@@ -152,13 +217,19 @@ def solicitude_list(request, identifier):
                 if 'product_list' in data:
                     for item in json.loads(request.POST.dict()['product_list']):
                         Item(solicitude= solicitude, product= item['product'], amount= item['amount']).save()
-                solicitudes = Solicitude.objects.filter(closed=False, accepted=True).order_by('-id')
+                solicitudes = Solicitude.objects.filter(closed=False, accepted=True, deadline__gte=datetime.now()).order_by('-id')
                 solicitudes_dict = [solicitude.as_dict_agent() for solicitude in solicitudes]
+
+                send_email("SOLICITUD CREADA")
                 return JSONResponse({'solicitudes':solicitudes_dict}, status=201)
             print(serializer.errors)
             return JSONResponse(serializer.errors, status=400)
         else:
             return HttpResponse(status=401)
+    else:
+        return HttpResponse(status=405)
+
+from django.http import QueryDict
 
 @csrf_exempt
 def solicitude_detail(request, identifier, pk_solicitude):
@@ -166,8 +237,7 @@ def solicitude_detail(request, identifier, pk_solicitude):
     Retrieve, update or delete a request.
     """
     try:
-        user = Agent.objects.get(identifier=identifier)
-        solicitude = user.solicitude_set.get(pk=pk_solicitude)
+        solicitude = Solicitude.objects.get(pk=pk_solicitude)
     except Agent.DoesNotExist:
         return HttpResponse(status=404)
     except Solicitude.DoesNotExist:
@@ -178,19 +248,47 @@ def solicitude_detail(request, identifier, pk_solicitude):
         return JSONResponse(solicitude.as_dict_agent())
     elif request.method == 'DELETE':
         token = request.META['HTTP_AUTHORIZATION'].split(" ")[1]
-        if token == user.token:
-            solicitude.change_to_closed()
-            solicitudes = user.solicitude_set.all()
-            solicitudes_dict = [solicitude.as_dict_agent() for solicitude in solicitudes]
-            # photos = job_request.photo_set.all()
-            # for photo in photos:
-            #     simple_delete_job_request(photo)
-            # job_request.delete()
-            return JSONResponse(solicitudes_dict)
-        else:
-            return HttpResponse(status=401)
+        solicitude.change_to_closed()
+        solicitudes = user.solicitude_set.all()
+        solicitudes_dict = [solicitude.as_dict_agent() for solicitude in solicitudes]
+        # photos = job_request.photo_set.all()
+        # for photo in photos:
+        #     simple_delete_job_request(photo)
+        # job_request.delete()
+        return JSONResponse(solicitudes_dict)
+    elif request.method == 'PUT':
+        data = QueryDict(request.body)
+        token = request.META['HTTP_AUTHORIZATION'].split(" ")[1]
+        solicitude = Solicitude.objects.filter(pk=pk_solicitude).first()
+        solicitude_temp = Solicitude.objects.get(pk=solicitude.pk)
+
+        focal = Focal(name=data['name'], RUC_or_DNI=data['ruc_or_dni'])
+        focal.save()
+        solicitude.focal = focal
+        solicitude.closed = True
+        solicitude.save()
+        solicitude.focal = None
+        solicitude.pk = None
+        solicitude.closed = False
+        solicitude.save()
+
+        data = QueryDict(request.body)
+
+        amount_list = json.loads(data['product_list'])
+        for (index, item) in enumerate(Solicitude.objects.get(pk=solicitude_temp.pk).item_set.all()):
+            print(index)
+            item.help = amount_list[index]
+            item.save()
+            item.pk = None
+            item.amount = item.amount - amount_list[index]
+            if item.amount != 0:
+                item.help = 0
+                item.solicitude = solicitude
+                item.save()
+        send_email("DONACIÓN REALIZADA")
+        return JSONResponse({}, status=200)
     else:
-        return HttpResponse(status=404)
+        return HttpResponse(status=405)
 
 @csrf_exempt
 def upload_image(request):
@@ -292,18 +390,18 @@ API_KEY = '23e63458d588b10f67434ac7ca40b40e'
 API_SECRET = '6108aa38fb2fa32124706e65af2b0c5c'
 mailjet = Client(auth=(API_KEY, API_SECRET), version='v3')
 
-def send_email(request):
+def send_email(message):
 
     email = {
-        'FromName': 'Mr Smith',
+        'FromName': 'GEAD APP',
         'FromEmail': 'anthony.delpozo.m@gmail.com',
-        'Subject': 'Test Email',
-        'Text-Part': 'Hey there !',
+        'Subject': message,
+        'Text-Part': message,
         'Recipients': [{'Email': 'delan1997@gmail.com'}]
     }
 
     mailjet.send.create(email)
-    return HttpResponse('')
+    # return HttpResponse('')
 
 def send_notification(request):
     headers = {
