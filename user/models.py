@@ -52,6 +52,7 @@ class EmpresaFocal(models.Model):
     RUC_or_DNI = models.CharField(max_length=11)
     identifier = models.CharField(max_length=11)
     token = models.CharField(max_length=175)
+    phone = models.CharField(max_length=9, unique=False, error_messages= {'unique':"Este teléfono ya ha sido usado"})
     photo_url = models.CharField(max_length=100, blank=True)
     email = models.EmailField(max_length=40, unique=True, error_messages= {'unique':"Este correo ya ha sido usado"})
     password = models.CharField(max_length=150)

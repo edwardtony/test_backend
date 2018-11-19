@@ -94,7 +94,7 @@ def login(request):
 
     if request.method == 'POST':
         credentials = get_data_from_request(request)
-        print(credentials)
+        print("credentials", credentials)
         try:
             user = Agent.login(credentials)
             token = user.token
@@ -112,7 +112,8 @@ def login(request):
         except EmpresaFocal.DoesNotExist as e:
             print(e)
 
-        return JSONResponse({'token':''})
+        print("HI")
+        return JSONResponse({'token':"HOLA"}, status=401)
     return HttpResponse(status=405)
 
 @csrf_exempt
@@ -122,16 +123,16 @@ def user_info(request):
         print(request.META['HTTP_AUTHORIZATION'])
         token = request.META['HTTP_AUTHORIZATION'].split(" ")[1]
         try:
-            user = Agent.objects.get(token=token)
-            print("USER", user)
-            return JSONResponse({'login':{'user':user.as_dict_agent(), 'focal':None}})
+            agent = Agent.objects.get(token=token)
+            print("USER", agent)
+            return JSONResponse({'login':{'agent':agent.as_dict_agent(), 'focal':None}})
         except Exception as e:
             print(e)
 
         try:
             focal = EmpresaFocal.objects.get(token=token)
             print("FOCAL", focal)
-            return JSONResponse({'login':{'focal':focal.as_dict_agent(), 'user':None}})
+            return JSONResponse({'login':{'focal':focal.as_dict_agent(), 'agent':None}})
         except Exception as e:
             print(e)
 
@@ -189,6 +190,7 @@ def solicitude_list(request, identifier):
     """
     List all code request, or create a new request.
     """
+    print("HI")
 
     if request.method == 'GET':
         solicitudes = Solicitude.objects.filter(closed=False, accepted=True, deadline__gte=datetime.now()).order_by('-id')
@@ -257,6 +259,7 @@ def solicitude_detail(request, identifier, pk_solicitude):
         # job_request.delete()
         return JSONResponse(solicitudes_dict)
     elif request.method == 'PUT':
+        delete_item = True
         data = QueryDict(request.body)
         token = request.META['HTTP_AUTHORIZATION'].split(" ")[1]
         solicitude = Solicitude.objects.filter(pk=pk_solicitude).first()
@@ -282,9 +285,14 @@ def solicitude_detail(request, identifier, pk_solicitude):
             item.pk = None
             item.amount = item.amount - amount_list[index]
             if item.amount != 0:
+                delete_item = False
                 item.help = 0
                 item.solicitude = solicitude
                 item.save()
+
+        if delete_item:
+            solicitude.delete()
+
         send_email("DONACIÓN REALIZADA")
         return JSONResponse({}, status=200)
     else:
@@ -301,7 +309,7 @@ def upload_image(request):
         return JSONResponse({'image_url': filename}, status=201)
     return HttpResponse(status=405)
 
-#---------------------------------SOLICITUDE-------------------------------------
+#---------------------------------EXCEL-------------------------------------
 @csrf_exempt
 def export_excel(request):
     if request.method == 'GET':
@@ -344,14 +352,14 @@ def export_excel(request):
 
 
 
-
-
-
-
-
-
-
-
+#---------------------------------PASSWORD-------------------------------------
+@csrf_exempt
+def forgotten_password(request):
+    if request.method == 'POST':
+        data = get_data_from_request(request)
+        send_email("Se ha enviado un correo a {} para que reinicie su cuenta".format(data['email']))
+        return JSONResponse({},status=200)
+    return HttpResponse(status=405)
 
 
 

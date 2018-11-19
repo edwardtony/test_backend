@@ -12,6 +12,7 @@ urlpatterns = [
     path('login/', views.login),
 	path('user_info/', views.user_info),
 	path('upload_image/', views.upload_image),
+	path('forgotten_password/', views.forgotten_password),
 	path('<int:identifier>/donate/', views.donate),
 	path('<int:identifier>/solicitude/', views.solicitude_list),
 	path('<int:identifier>/solicitude/<int:pk_solicitude>/', views.solicitude_detail),
