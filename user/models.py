@@ -134,12 +134,12 @@ class Solicitude(models.Model):
         ('Región 5', 'Región 5')
     )
 
-    MAGNITUDE_OPTIONS = (
-        ('Magnitud 1', 'Magnitud 1'),
-        ('Magnitud 2', 'Magnitud 2'),
-        ('Magnitud 3', 'Magnitud 3'),
-        ('Magnitud 4', 'Magnitud 4'),
-        ('Magnitud 5', 'Magnitud 5')
+    PRIORITY_OPTIONS = (
+        ('Prioridad 1', 'Prioridad 1'),
+        ('Prioridad 2', 'Prioridad 2'),
+        ('Prioridad 3', 'Prioridad 3'),
+        ('Prioridad 4', 'Prioridad 4'),
+        ('Prioridad 5', 'Prioridad 5')
     )
 
     agent = models.ForeignKey(Agent, on_delete=models.CASCADE)
@@ -150,7 +150,7 @@ class Solicitude(models.Model):
     district = models.CharField(max_length=20, choices=DISTRICT_OPTIONS)
     province = models.CharField(max_length=20, choices=PROVINCE_OPTIONS)
     region = models.CharField(max_length=20, choices=REGION_OPTIONS)
-    magnitude = models.CharField(max_length=20, choices=MAGNITUDE_OPTIONS, blank=True)
+    priority = models.CharField(max_length=20, choices=PRIORITY_OPTIONS, blank=True)
     date = models.DateTimeField(default=datetime.now)
     deadline = models.DateTimeField(default=datetime.now() + timedelta(days=2))
     closed = models.BooleanField(default=False)
@@ -177,7 +177,7 @@ class Solicitude(models.Model):
 class Item(models.Model):
 
     solicitude = models.ForeignKey(Solicitude, on_delete=models.CASCADE)
-    product = models.CharField(max_length=20)
+    product = models.CharField(max_length=40)
     amount = models.IntegerField()
     help = models.IntegerField(blank=True, null=True)
 

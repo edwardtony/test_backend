@@ -113,32 +113,32 @@ def login(request):
             print(e)
 
         print("HI")
-        return JSONResponse({'token':"HOLA"}, status=401)
-    return HttpResponse(status=405)
+        return JSONResponse({'error':{'code': 401, 'message':'Correo o contraseña incorrecto'}}, status=401)
+    return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}}, status=405)
 
 @csrf_exempt
 def user_info(request):
     if request.method == 'GET':
-        if 'HTTP_AUTHORIZATION' not in request.META: return HttpResponse(status=403)
-        print(request.META['HTTP_AUTHORIZATION'])
+        if 'HTTP_AUTHORIZATION' not in request.META: return JSONResponse({'error':{'code': 403, 'message':'Error de autorización'}}, status=403)
         token = request.META['HTTP_AUTHORIZATION'].split(" ")[1]
+        print(token)
         try:
             agent = Agent.objects.get(token=token)
             print("USER", agent)
-            return JSONResponse({'login':{'agent':agent.as_dict_agent(), 'focal':None}})
+            return JSONResponse({'login':{'agent':agent.as_dict_agent()}})
         except Exception as e:
             print(e)
 
         try:
             focal = EmpresaFocal.objects.get(token=token)
             print("FOCAL", focal)
-            return JSONResponse({'login':{'focal':focal.as_dict_agent(), 'agent':None}})
+            return JSONResponse({'login':{'focal':focal.as_dict_agent()}})
         except Exception as e:
             print(e)
 
-        return HttpResponse(status=404)
+        return JSONResponse({'error':{'code': 401, 'message':'Correo o contraseña incorrecto'}}, status=401)
     else:
-        return HttpResponse(status=405)
+        return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}}, status=405)
 
 
 
@@ -201,7 +201,7 @@ def solicitude_list(request, identifier):
         try:
             user = Agent.objects.get(identifier=identifier)
         except Agent.DoesNotExist:
-            return HttpResponse(status=404)
+            return JSONResponse({'error':{'code': 403, 'message':'Error de autorización'}}, status=403)
         token = request.META['HTTP_AUTHORIZATION'].split(" ")[1]
 
         if token == user.token:
@@ -222,14 +222,13 @@ def solicitude_list(request, identifier):
                 solicitudes = Solicitude.objects.filter(closed=False, accepted=True, deadline__gte=datetime.now()).order_by('-id')
                 solicitudes_dict = [solicitude.as_dict_agent() for solicitude in solicitudes]
 
-                send_email("SOLICITUD CREADA")
+                #send_email("SOLICITUD CREADA")
                 return JSONResponse({'solicitudes':solicitudes_dict}, status=201)
-            print(serializer.errors)
-            return JSONResponse(serializer.errors, status=400)
+            return JSONResponse({'error':{'code': 401, 'message':'Datos no válidos '}}, status=401)
         else:
-            return HttpResponse(status=401)
+            return JSONResponse({'error':{'code': 401, 'message':'Correo o contraseña incorrecto'}}, status=401)
     else:
-        return HttpResponse(status=405)
+        return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}}, status=405)
 
 from django.http import QueryDict
 
@@ -292,11 +291,10 @@ def solicitude_detail(request, identifier, pk_solicitude):
 
         if delete_item:
             solicitude.delete()
-
-        send_email("DONACIÓN REALIZADA")
+        #send_email("DONACIÓN REALIZADA")
         return JSONResponse({}, status=200)
     else:
-        return HttpResponse(status=405)
+        return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}}, status=405)
 
 @csrf_exempt
 def upload_image(request):
@@ -307,7 +305,7 @@ def upload_image(request):
         filename = fs.save(path, image)
         print(filename)
         return JSONResponse({'image_url': filename}, status=201)
-    return HttpResponse(status=405)
+    return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}}, status=405)
 
 #---------------------------------EXCEL-------------------------------------
 @csrf_exempt
@@ -319,30 +317,38 @@ def export_excel(request):
         ws['B2'] = "REPORTE DE SOLICITUDES"
         ws.merge_cells('B2:J2')
 
-        ws['B4'] = "Agente"
-        ws['C4'] = "Autoridad"
-        ws['D4'] = "Título"
-        ws['E4'] = "Emergencia"
-        ws['F4'] = "Distrito"
-        ws['G4'] = "Provincia"
-        ws['H4'] = "Región"
-        ws['I4'] = "Magnitud"
-        ws['J4'] = "Fecha"
+#GEAD
+        ws['B4'] = "Código"
+        ws['C4'] = "Agente"
+        ws['D4'] = "Autoridad"
+        ws['E4'] = "Título"
+        ws['F4'] = "Emergencia"
+        ws['G4'] = "Distrito"
+        ws['H4'] = "Provincia"
+        ws['I4'] = "Región"
+        ws['J4'] = "Magnitud"
+        ws['K4'] = "Fecha"
 
         start_index = 5
         file_name = "ReporteSolicitudes {0}.xlsx".format(datetime.now().strftime("%d/%m/%y %H:%M"))
 
         for solicitude in solicitudes:
-            ws.cell(row=start_index, column=2).value = solicitude.agent.first_name
-            ws.cell(row=start_index, column=3).value = solicitude.authority.first_name
-            ws.cell(row=start_index, column=4).value = solicitude.title
-            ws.cell(row=start_index, column=5).value = solicitude.emergency
-            ws.cell(row=start_index, column=6).value = solicitude.district
-            ws.cell(row=start_index, column=7).value = solicitude.province
-            ws.cell(row=start_index, column=8).value = solicitude.region
-            ws.cell(row=start_index, column=9).value = solicitude.magnitude
-            ws.cell(row=start_index, column=10).value = solicitude.date.strftime('%d/%m/%y')
+            ws.cell(row=start_index, column=2).value = "#GEAD" + str(solicitude.pk)
+            ws.cell(row=start_index, column=3).value = solicitude.agent.first_name
+            ws.cell(row=start_index, column=4).value = solicitude.authority.first_name
+            ws.cell(row=start_index, column=5).value = solicitude.title
+            ws.cell(row=start_index, column=6).value = solicitude.emergency
+            ws.cell(row=start_index, column=7).value = solicitude.district
+            ws.cell(row=start_index, column=8).value = solicitude.province
+            ws.cell(row=start_index, column=9).value = solicitude.region
+            ws.cell(row=start_index, column=10).value = solicitude.priority
+            ws.cell(row=start_index, column=11).value = solicitude.date.strftime('%d/%m/%y')
             start_index+=1
+            for item in solicitude.item_set.all():
+                ws.cell(row=start_index, column=3).value = item.pk
+                ws.cell(row=start_index, column=4).value = item.product
+                ws.cell(row=start_index, column=5).value = item.amount
+                start_index+=1
 
         response = HttpResponse(content_type = "application/ms-excel")
         content = "attachment; filename = {0}".format(file_name)
@@ -357,9 +363,9 @@ def export_excel(request):
 def forgotten_password(request):
     if request.method == 'POST':
         data = get_data_from_request(request)
-        send_email("Se ha enviado un correo a {} para que reinicie su cuenta".format(data['email']))
+        #send_email("Se ha enviado un correo a {} para que reinicie su cuenta".format(data['email']))
         return JSONResponse({},status=200)
-    return HttpResponse(status=405)
+    return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}}, status=405)
 
 
 
