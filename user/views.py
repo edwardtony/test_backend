@@ -19,6 +19,9 @@ import jwt
 
 import os
 
+import firebase_admin
+from firebase_admin import credentials, messaging
+
 
 
 # Create your views here.
@@ -29,6 +32,22 @@ import os
 
 
 
+cred = credentials.Certificate("/Users/anthonyedwarddelpozomatias/MEGAsync/geadapp-firebase-adminsdk-x2a5s-df26e617a9.json")
+firebase_admin.initialize_app(cred)
+
+
+message = messaging.Message(
+    notification= messaging.Notification(
+        title="Hola desde el server",
+        body="Soy el cuerpo de la notificación",
+    ),
+    topic="ALL",
+)
+
+response = messaging.send(message)
+
+
+print('Successfully sent message:', response)
 
 #-------------------------------UTILS-------------------------------
 
@@ -222,7 +241,7 @@ def solicitude_list(request, identifier):
                 solicitudes = Solicitude.objects.filter(closed=False, accepted=True, deadline__gte=datetime.now()).order_by('-id')
                 solicitudes_dict = [solicitude.as_dict_agent() for solicitude in solicitudes]
 
-                #send_email("SOLICITUD CREADA")
+                send_email("SOLICITUD CREADA")
                 return JSONResponse({'solicitudes':solicitudes_dict}, status=201)
             return JSONResponse({'error':{'code': 401, 'message':'Datos no válidos '}}, status=401)
         else:
@@ -291,7 +310,7 @@ def solicitude_detail(request, identifier, pk_solicitude):
 
         if delete_item:
             solicitude.delete()
-        #send_email("DONACIÓN REALIZADA")
+        send_email("DONACIÓN REALIZADA")
         return JSONResponse({}, status=200)
     else:
         return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}}, status=405)
@@ -413,6 +432,16 @@ def send_email(message):
         'Text-Part': message,
         'Recipients': [{'Email': 'delan1997@gmail.com'}]
     }
+
+    message = messaging.Message(
+        notification= messaging.Notification(
+            title="GEAD APP",
+            body=message,
+        ),
+        topic="ALL",
+    )
+
+    response = messaging.send(message)
 
     mailjet.send.create(email)
     # return HttpResponse('')
