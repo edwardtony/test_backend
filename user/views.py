@@ -11,7 +11,7 @@ from mailjet_rest import Client
 from openpyxl import Workbook
 from user.serializers import *
 from user.models import *
-from datetime import datetime
+from datetime import datetime, timedelta
 import requests
 import random
 import json
@@ -37,12 +37,25 @@ firebase_admin.initialize_app(cred)
 
 
 message = messaging.Message(
-    notification= messaging.Notification(
-        title="Hola desde el server",
-        body="Soy el cuerpo de la notificación",
-    ),
-    topic="ALL",
+    data={
+        "title":"Hola desde el server",
+        "body":"Soy el cuerpo de la notificación",
+    },
+    topic= "ALL",
 )
+
+
+# message = messaging.Message(
+#     android=messaging.AndroidConfig(
+#         ttl= timedelta(seconds=0),
+#         priority='high',
+#         data={
+#             "title":"Hola desde el server",
+#             "body":"Soy el cuerpo de la notificación",
+#         }
+#     ),
+#     topic= "ALL",
+# )
 
 response = messaging.send(message)
 
@@ -103,9 +116,8 @@ def register(request):
             serializer.save()
             user_return = Agent.objects.get(pk= serializer.data['id'])
             return JSONResponse(user_return.as_dict_agent(), status=201)
-        print(serializer.errors)
-        return JSONResponse(serializer.errors, status=400)
-    return HttpResponse(status=405)
+        return JSONResponse({'error':{'code': 401, 'message':'Este correo ya ha sido usado'}})
+    return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}})
 
 @csrf_exempt
 def login(request):
@@ -132,8 +144,8 @@ def login(request):
             print(e)
 
         print("HI")
-        return JSONResponse({'error':{'code': 401, 'message':'Correo o contraseña incorrecto'}}, status=401)
-    return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}}, status=405)
+        return JSONResponse({'error':{'code': 401, 'message':'Correo o contraseña incorrecto'}})
+    return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}})
 
 @csrf_exempt
 def user_info(request):
@@ -232,22 +244,19 @@ def solicitude_list(request, identifier):
             if serializer.is_valid():
                 serializer.save()
                 solicitude = Solicitude.objects.get(pk=serializer.data['id'])
-                if 'items' in data:
-                    for item in json.loads(request.POST.dict()['items']):
-                        Item(solicitude= solicitude, product= item['product'], amount= item['amount']).save()
                 if 'product_list' in data:
                     for item in json.loads(request.POST.dict()['product_list']):
                         Item(solicitude= solicitude, product= item['product'], amount= item['amount']).save()
                 solicitudes = Solicitude.objects.filter(closed=False, accepted=True, deadline__gte=datetime.now()).order_by('-id')
                 solicitudes_dict = [solicitude.as_dict_agent() for solicitude in solicitudes]
 
-                send_email("SOLICITUD CREADA")
+                send_email("SOLICITUD CREADA", solicitude)
                 return JSONResponse({'solicitudes':solicitudes_dict}, status=201)
-            return JSONResponse({'error':{'code': 401, 'message':'Datos no válidos '}}, status=401)
+            return JSONResponse({'error':{'code': 401, 'message':'Datos no válidos '}})
         else:
-            return JSONResponse({'error':{'code': 401, 'message':'Correo o contraseña incorrecto'}}, status=401)
+            return JSONResponse({'error':{'code': 401, 'message':'Correo o contraseña incorrecto'}})
     else:
-        return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}}, status=405)
+        return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}})
 
 from django.http import QueryDict
 
@@ -264,8 +273,9 @@ def solicitude_detail(request, identifier, pk_solicitude):
         return HttpResponse(status=404)
 
     if request.method == 'GET':
-        serializer = SolicitudeSerializer(solicitude)
-        return JSONResponse(solicitude.as_dict_agent())
+        #serializer = SolicitudeSerializer(solicitude)
+        print("SOLICITUDE", solicitude.as_dict_agent())
+        return JSONResponse({'solicitude':solicitude.as_dict_agent()})
     elif request.method == 'DELETE':
         token = request.META['HTTP_AUTHORIZATION'].split(" ")[1]
         solicitude.change_to_closed()
@@ -310,7 +320,7 @@ def solicitude_detail(request, identifier, pk_solicitude):
 
         if delete_item:
             solicitude.delete()
-        send_email("DONACIÓN REALIZADA")
+        send_email("DONACIÓN REALIZADA", solicitude)
         return JSONResponse({}, status=200)
     else:
         return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}}, status=405)
@@ -382,7 +392,7 @@ def export_excel(request):
 def forgotten_password(request):
     if request.method == 'POST':
         data = get_data_from_request(request)
-        #send_email("Se ha enviado un correo a {} para que reinicie su cuenta".format(data['email']))
+        send_email("Se ha enviado un correo a {} para que reinicie su cuenta".format(data['email']), None)
         return JSONResponse({},status=200)
     return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}}, status=405)
 
@@ -423,7 +433,7 @@ API_KEY = '23e63458d588b10f67434ac7ca40b40e'
 API_SECRET = '6108aa38fb2fa32124706e65af2b0c5c'
 mailjet = Client(auth=(API_KEY, API_SECRET), version='v3')
 
-def send_email(message):
+def send_email(message, solicitude):
 
     email = {
         'FromName': 'GEAD APP',
@@ -434,16 +444,17 @@ def send_email(message):
     }
 
     message = messaging.Message(
-        notification= messaging.Notification(
-            title="GEAD APP",
-            body=message,
-        ),
-        topic="ALL",
+        data={
+            "title":"GEAD APP",
+            "body":message,
+            "solicitude_id": str(solicitude.pk),
+        },
+        topic= "ALL",
     )
 
     response = messaging.send(message)
 
-    mailjet.send.create(email)
+    #mailjet.send.create(email)
     # return HttpResponse('')
 
 def send_notification(request):
