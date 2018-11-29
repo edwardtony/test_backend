@@ -32,9 +32,9 @@ from firebase_admin import credentials, messaging
 
 
 
-cred = credentials.Certificate("/Users/anthonyedwarddelpozomatias/MEGAsync/geadapp-firebase-adminsdk-x2a5s-df26e617a9.json")
+cred = credentials.Certificate("geadapp-firebase-adminsdk-x2a5s-df26e617a9.json")
 firebase_admin.initialize_app(cred)
-
+print(cred)
 
 message = messaging.Message(
     data={

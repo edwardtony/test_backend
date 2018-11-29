@@ -1,0 +1,94 @@
+{% extends "alumno/base.html" %}
+{%load staticfiles %}
+
+{% block title %} <title> Asesorías </title>{% endblock %}
+
+{% block body %}
+	<div>
+		<br />
+	</div>
+	<div class="container text-center">
+		<div class= "row">
+			<div>
+				<a href="../../home">
+					<img margin-left="100" width="150" height="150" src="{% static 'images\logo.jpg' %}" />
+				</a>
+			</div>
+			<div class = "col-sm-4">
+				<br />
+				<br />
+				<h2 align-content: "center">Asesorias ULima</h2>
+			</div>
+			<div class = "col-sm-4">
+				<br /><br />
+				<p> Bienvenido {{usuario.nombre| upper}} </p>
+				<p> ¿Que deseas hacer hoy? </p>
+			</div>
+					<div class = "col-sm-2">
+						<a href="{% url 'alumno:log_out' %}" class="btn btn-warning">Log Off</a>
+					</div>
+	  </div>
+	</div>
+
+	<br />
+	<br />
+
+  <div>
+    <div class="container">
+			<div class="row">
+				<div class="col-8">
+					<h4>Información</h4>
+					<br>
+					<h6>Nombre: {{profesor.nombrepProfesor | upper}}</h6>
+					<h6>Código: {{profesor.codigoUlima | upper}}</h6>
+					<h6>Email: {{profesor.email}}</h6>
+					<h6>Estado: {{profesor.state}}</h6>
+					<h6>Puntuación: {{rate}}</h6>
+					<br>
+
+					<h4>Cursos</h4>
+					<br>
+					<ul>
+						{% for asesoria in profesor.asesoria_set.all %}
+							<li>
+								- Curso: {{asesoria.codCurso.nombreCurso}} /
+								Fecha: {{asesoria.fechaAsesoria}} /
+								Hora: {{asesoria.horaInicio|time:'H:i'}} /
+								Lugar: {{asesoria.lugar.lugar}}
+							</li>
+						{% endfor %}
+					</ul>
+					<br>
+
+					<h4>Comentarios</h4>
+					<br>
+					<ul>
+						{% for comentario in comentarios %}
+							<div class="card">
+								<div class="card-body">
+									<h5 class="card-title">Curso: {{comentario.cita.asesoria.codCurso.nombreCurso}}</h5>
+									<h6 class="card-subtitle mb-2 text-muted">Puntuación: {{comentario.rate}} estrellas</h6>
+									<p class="card-text">{{comentario.comment}}</p>
+								</div>
+							</div>
+
+						{% empty %}
+						  ** No hay comentarios **
+						{% endfor %}
+					</ul>
+				</div>
+				<div class="col-4">
+					<h5>Foto:</h5>
+					<br>
+					<img style="display:block; margin:0 auto; width:100%;"src="{{profesor.image.url}}" />
+				</div>
+			</div>
+			<br>
+    </div>
+	</div>
+</div>
+
+
+<div id="dropDownSelect1"></div>
+
+{% endblock %}
