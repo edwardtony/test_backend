@@ -504,7 +504,7 @@ def detail(request, pk_solicitude):
         solicitude = Solicitude.objects.get(pk=pk_solicitude)
 
         if "select" in request.POST and request.POST["select"] != "0":
-            solicitude.priority = request.POST['select']
+            solicitude.priority = "Prioridad " + request.POST['select']
         else:
             solicitude = Solicitude.objects.get(pk=pk_solicitude)
             args = {"solicitude": solicitude, "pk_solicitude": pk_solicitude, "message": True}
