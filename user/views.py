@@ -396,7 +396,7 @@ def export_excel(request):
             for item in solicitude.item_set.all():
                 ws.cell(row=start_index, column=3).value = item.pk
                 ws.cell(row=start_index, column=4).value = item.product
-                ws.cell(row=start_index, column=5).value = item.amount
+                ws.cell(row=start_index, column=5).value = item.remaining
                 start_index+=1
 
         response = HttpResponse(content_type = "application/ms-excel")
@@ -504,8 +504,7 @@ def detail(request, pk_solicitude):
         solicitude = Solicitude.objects.get(pk=pk_solicitude)
 
         if "select" in request.POST and request.POST["select"] != "0":
-            print("SELECT", request.POST["select"])
-            solicitude.priority = "Prioridad " + request.POST['select']
+            solicitude.priority = request.POST['select']
         else:
             solicitude = Solicitude.objects.get(pk=pk_solicitude)
             args = {"solicitude": solicitude, "pk_solicitude": pk_solicitude, "message": True}

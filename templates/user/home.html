@@ -89,6 +89,9 @@
                     <div class="container-fluid">
                         <div class="header-wrap">
                             <form class="form-header" action="" method="POST">
+                              <a target="_blank" href="https://gead-app.herokuapp.com/users/excel/" class="btn btn-danger btn-sm">
+                                  Exportar a excel
+                              </a>
                             </form>
                             <div class="header-button">
                                 <div class="account-wrap">
@@ -140,6 +143,8 @@
                                         <h3>
                                             <i class="zmdi zmdi-account-calendar"></i>Solicitudes
                                         </h3>
+
+
                                     </div>
                                     <div class="au-inbox-wrap js-inbox-wrap">
                                         <div class="au-message js-list-load">
@@ -155,7 +160,7 @@
                                                                 <div class="avatar-wrap">
                                                                     <div class="avatar">
                                                                         {% if not solicitude.image_url == "" %}
-                                                                            <img src="http://192.168.0.13:8000/users/media/{{solicitude.image_url}}" >
+                                                                            <img src="https://gead-app.herokuapp.com/users/media/{{solicitude.image_url}}" >
                                                                         {% else %}
                                                                             <img src="{% static 'images/logo.png' %}" >
                                                                         {% endif %}
