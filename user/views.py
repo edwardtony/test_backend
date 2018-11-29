@@ -484,7 +484,7 @@ def send_email(message, solicitude):
 
 
 
-def login(request):
+def index(request):
     print("LOGIN")
     if request.method == 'POST':
         return redirect('/users/home')
@@ -500,19 +500,29 @@ def home(request):
     return render(request,'user/home.html', args)
 
 def detail(request, pk_solicitude):
-    print("DETAIL")
-    print(request.POST)
     if request.method == 'POST':
-        select = request.POST['select']
-        accepted = request.POST['accepted']
-        imgaccepted = request.POST['imgaccepted']
+        solicitude = Solicitude.objects.get(pk=pk_solicitude)
 
-        print(select, accepted, imgaccepted)
+        if "select" in request.POST and request.POST["select"] != "0":
+            print("SELECT", request.POST["select"])
+            solicitude.priority = "Prioridad " + request.POST['select']
+        else:
+            solicitude = Solicitude.objects.get(pk=pk_solicitude)
+            args = {"solicitude": solicitude, "pk_solicitude": pk_solicitude, "message": True}
+            return render(request,'user/detail.html', args)
 
-        return redirect('/users/detail' + str(pk_solicitude))
+        if "accepted" in request.POST:
+            solicitude.accepted = request.POST['accepted']
+
+        if "imgaccepted" in request.POST:
+            solicitude.image_accepted = request.POST['imgaccepted']
+
+        solicitude.save()
+
+        return redirect('/users/detail/' + str(pk_solicitude))
 
     solicitude = Solicitude.objects.get(pk=pk_solicitude)
-    args = {"solicitude": solicitude}
+    args = {"solicitude": solicitude, "pk_solicitude": pk_solicitude}
     return render(request,'user/detail.html', args)
 
 

@@ -19,7 +19,7 @@ urlpatterns = [
     path('excel/', views.export_excel),
 
 
-    path('login/',  views.login, name='login'),
+    path('index/',  views.index, name='index'),
     path('home/',  views.home, name='home'),
     path('detail/<int:pk_solicitude>/',  views.detail, name='detail'),
 ]

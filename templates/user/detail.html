@@ -71,7 +71,7 @@
                 <nav class="navbar-sidebar">
                     <ul class="list-unstyled navbar__list">
                         <li class="has-sub">
-                            <a class="js-arrow" href="#">
+                            <a class="js-arrow" href="../../home">
                                 <i class="fas fa-tachometer-alt"></i>Dashboard
                             </a>
                         </li>
@@ -148,7 +148,7 @@
                                                     <div class="avatar-wrap">
                                                         <div class="avatar avatar--small">
                                                           {% if not solicitude.image_url == "" %}
-                                                              <img src="http://192.168.0.16:8000/users/media/{{solicitude.image_url}}" >
+                                                              <img src="http://192.168.0.13:8000/users/media/{{solicitude.image_url}}" >
                                                           {% else %}
                                                               <img src="{% static 'images/logo.png' %}" >
                                                           {% endif %}
@@ -208,15 +208,15 @@
                                                                     <div class="col-6">
                                                                         <div class="recei-mess">
                                                                             <h4>Formulario</h4> <br/>
-                                                                            <form class="login100-form validate-form" method="post">
+                                                                            <form class="login100-form validate-form" method="post" action="../../detail/{{pk_solicitude}}/">
                                                                                 {% csrf_token %}
                                                                                 <div class="row form-group">
                                                                                     <div class="col col-md-3">
                                                                                         <label for="select" class=" form-control-label">Prioridad</label>
                                                                                     </div>
                                                                                     <div class="col-12 col-md-9">
-                                                                                        <select name="select" id="select" class="form-control-sm form-control">
-                                                                                            <option value="0">Please select</option>
+                                                                                        <select required name="select" id="select" class="form-control-sm form-control"  value="{{solicitude.priority}}" >
+                                                                                            <option value="0">Seleccionar Prioridad</option>
                                                                                             <option value="1">Prioridad 1</option>
                                                                                             <option value="2">Prioridad 2</option>
                                                                                             <option value="3">Prioridad 3</option>
@@ -230,7 +230,7 @@
                                                                                         <div class="form-check">
                                                                                             <div class="checkbox">
                                                                                                 <label for="accepted" class="form-check-label ">
-                                                                                                    <input type="checkbox" id="accepted" name="accepted" value="True" class="form-check-input">Aceptar Solicitud
+                                                                                                    <input type="checkbox" id="accepted" name="accepted" {% if solicitude.accepted %}checked="checked"{% endif %} value="True" class="form-check-input">Aceptar Solicitud
                                                                                                 </label>
                                                                                             </div>
                                                                                         </div>
@@ -241,12 +241,15 @@
                                                                                         <div class="form-check">
                                                                                             <div class="checkbox">
                                                                                                 <label for="imgaccepted" class="form-check-label ">
-                                                                                                    <input type="checkbox" id="imgaccepted" name="imgaccepted" value="True" class="form-check-input">Aceptar Imagen
+                                                                                                    <input type="checkbox" id="imgaccepted" name="imgaccepted" {% if solicitude.image_accepted %}checked="checked"{% endif %}  value="True" class="form-check-input">Aceptar Imagen
                                                                                                 </label>
                                                                                             </div>
                                                                                         </div>
                                                                                     </div>
                                                                                 </div>
+                                                                                {% if message %}
+                                                                                    <h5 style="color:red">Debe asignar una prioridad</h5> <br>
+                                                                                {% endif %}
                                                                                 <button type="submit" class="btn btn-primary btn-sm">
                                                                                     Enviar
                                                                                 </button>
@@ -259,7 +262,7 @@
                                                                         <div class="recei-mess">
                                                                             <h4>Imagen</h4> <br/>
                                                                             {% if not solicitude.image_url == "" %}
-                                                                                <img src="http://192.168.0.16:8000/users/media/{{solicitude.image_url}}" >
+                                                                                <img src="http://192.168.0.13:8000/users/media/{{solicitude.image_url}}" >
                                                                             {% else %}
                                                                                 <b>No hay imagen</b><br/>
                                                                             {% endif %}
