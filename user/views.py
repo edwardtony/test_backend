@@ -320,10 +320,13 @@ def solicitude_detail(request, identifier, pk_solicitude):
     #     send_email("DONACIÓN REALIZADA", solicitude)
     #     return JSONResponse({}, status=200)
     elif request.method == 'PUT':
-        data = QueryDict(request.body)
-        print(data)
         solicitude = Solicitude.objects.filter(pk=pk_solicitude).first()
         empresa_focal = EmpresaFocal.objects.filter(identifier=identifier).first()
+
+        if solicitude.closed:
+            return JSONResponse({'error':{'code': 401, 'message':'La solicitud ya ha sido cerrada'}})
+
+        data = QueryDict(request.body)
         help = Help(name=data['name'], RUC_or_DNI=data['ruc_or_dni'], empresa_focal=empresa_focal, solicitude=solicitude)
         help.save()
 
@@ -340,7 +343,7 @@ def solicitude_detail(request, identifier, pk_solicitude):
         send_email("DONACIÓN REALIZADA", solicitude)
         return JSONResponse({}, status=200)
     else:
-        return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}}, status=405)
+        return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}})
 
 @csrf_exempt
 def upload_image(request):
@@ -351,7 +354,7 @@ def upload_image(request):
         filename = fs.save(path, image)
         print(filename)
         return JSONResponse({'image_url': filename}, status=201)
-    return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}}, status=405)
+    return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}})
 
 #---------------------------------EXCEL-------------------------------------
 @csrf_exempt
@@ -411,7 +414,7 @@ def forgotten_password(request):
         data = get_data_from_request(request)
         send_email("Se ha enviado un correo a {} para que reinicie su cuenta".format(data['email']), None)
         return JSONResponse({},status=200)
-    return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}}, status=405)
+    return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}})
 
 
 
@@ -475,16 +478,49 @@ def send_email(message, solicitude):
     #mailjet.send.create(email)
     # return HttpResponse('')
 
-def send_notification(request):
-    headers = {
-        'Authorization': 'key=AIzaSyB4ZBV-pbyLNYj_20lNI1czpfKGQ37ntrk',
-        'Content-Type': 'application/json'
-    }
-    data = {
-        'title':'Test',
-        'body':'Hello world'
-    }
-    response = requests.post('https://fcm.googleapis.com/fcm/send', headers=headers, data=data)
-    content = response.content
-    print(content)
-    return HttpResponse('')
+
+
+
+
+
+
+def login(request):
+    print("LOGIN")
+    if request.method == 'POST':
+        return redirect('/users/home')
+    return render(request,'user/login.html')
+
+def home(request):
+    print("HOME")
+    if request.method == 'POST':
+        return redirect('/users/home')
+
+    solicitudes = Solicitude.objects.all()
+    args = {"solicitudes": solicitudes}
+    return render(request,'user/home.html', args)
+
+def detail(request, pk_solicitude):
+    print("DETAIL")
+    print(request.POST)
+    if request.method == 'POST':
+        select = request.POST['select']
+        accepted = request.POST['accepted']
+        imgaccepted = request.POST['imgaccepted']
+
+        print(select, accepted, imgaccepted)
+
+        return redirect('/users/detail' + str(pk_solicitude))
+
+    solicitude = Solicitude.objects.get(pk=pk_solicitude)
+    args = {"solicitude": solicitude}
+    return render(request,'user/detail.html', args)
+
+
+
+
+
+
+
+
+
+#

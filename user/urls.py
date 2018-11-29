@@ -7,7 +7,6 @@ from . import views
 app_name = 'users'
 urlpatterns = [
     path('send_email/', views.send_email),
-    path('send_notification/', views.send_notification),
     path('register/', views.register),
     path('login/', views.login),
 	path('user_info/', views.user_info),
@@ -18,6 +17,11 @@ urlpatterns = [
 	path('<int:identifier>/solicitude/<int:pk_solicitude>/', views.solicitude_detail),
 
     path('excel/', views.export_excel),
+
+
+    path('login/',  views.login, name='login'),
+    path('home/',  views.home, name='home'),
+    path('detail/<int:pk_solicitude>/',  views.detail, name='detail'),
 ]
 
 
