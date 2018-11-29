@@ -34,28 +34,16 @@ class Agent(models.Model):
     def __str__(self):
          return "Nombre: {} {} - Email: {}".format(self.first_name, self.last_name,self.email)
 
-class Focal(models.Model):
-
-    name = models.CharField(max_length=20)
-    RUC_or_DNI = models.CharField(max_length=11)
-
-    def as_dict_agent(self):
-        result = model_to_dict(self, fields=None, exclude=None)
-        return result
-
-    def __str__(self):
-         return "Nombre: {} {}".format(self.name, self.RUC_or_DNI)
-
 class EmpresaFocal(models.Model):
 
     name = models.CharField(max_length=20)
     RUC_or_DNI = models.CharField(max_length=11)
-    identifier = models.CharField(max_length=11)
-    token = models.CharField(max_length=175)
-    phone = models.CharField(max_length=9, unique=False, error_messages= {'unique':"Este teléfono ya ha sido usado"})
-    photo_url = models.CharField(max_length=100, blank=True)
     email = models.EmailField(max_length=40, unique=True, error_messages= {'unique':"Este correo ya ha sido usado"})
     password = models.CharField(max_length=150)
+    identifier = models.CharField(max_length=11)
+    phone = models.CharField(max_length=9, unique=False, error_messages= {'unique':"Este teléfono ya ha sido usado"})
+    photo_url = models.CharField(max_length=100, blank=True)
+    token = models.CharField(max_length=175)
 
     def login(credentials):
         userTemp = EmpresaFocal.objects.get(email=credentials['email'])
@@ -76,7 +64,6 @@ class EmpresaFocal(models.Model):
 
     def __str__(self):
          return "Nombre: {} {}".format(self.name, self.RUC_or_DNI)
-
 
 class Authority(models.Model):
 
@@ -144,7 +131,6 @@ class Solicitude(models.Model):
 
     agent = models.ForeignKey(Agent, on_delete=models.CASCADE)
     authority = models.ForeignKey(Authority, on_delete=models.CASCADE)
-    focal = models.ForeignKey(Focal, on_delete=models.CASCADE, blank=True, null=True)
     title = models.CharField(max_length=30)
     emergency = models.CharField(max_length=20, choices=EMERGENCY_OPTIONS)
     district = models.CharField(max_length=20, choices=DISTRICT_OPTIONS)
@@ -166,8 +152,6 @@ class Solicitude(models.Model):
         result = model_to_dict(self, fields=None, exclude=None)
         result['agent'] = self.agent.as_dict_agent(False)
         result['authority'] = self.authority.as_dict_agent()
-        if self.focal :
-            result['focal'] = self.focal.as_dict_agent()
         result['product_list'] = [item.as_dict_agent() for item in self.item_set.all()]
         return result
 
@@ -178,15 +162,15 @@ class Item(models.Model):
 
     solicitude = models.ForeignKey(Solicitude, on_delete=models.CASCADE)
     product = models.CharField(max_length=40)
-    amount = models.IntegerField()
-    help = models.IntegerField(blank=True, null=True)
+    total = models.IntegerField()
+    remaining = models.IntegerField()
 
     def as_dict_agent(self):
         result = model_to_dict(self, fields=None, exclude=None)
         return result
 
     def __str__(self):
-         return "Producto: {} - Cantidad: {} - Petición: {}".format(self.product, self.amount, self.solicitude)
+         return "Producto: {} - Total: {} - Actual: {} - Petición: {}".format(self.product, self.total, self.remaining, self.solicitude)
 
 class Photos(models.Model):
 
@@ -194,4 +178,25 @@ class Photos(models.Model):
     url = models.CharField(max_length=100)
 
     def __str__(self):
-            return "URL: {} - Petición: {}".format(self.url, self.solicitude)
+        return "URL: {} - Petición: {}".format(self.url, self.solicitude)
+
+class Help(models.Model):
+
+    name = models.CharField(max_length=20)
+    RUC_or_DNI = models.CharField(max_length=11)
+    empresa_focal = models.ForeignKey(EmpresaFocal, on_delete=models.CASCADE)
+    solicitude = models.ForeignKey(Solicitude, on_delete=models.CASCADE)
+
+    def as_dict_agent(self):
+        result = model_to_dict(self, fields=None, exclude=None)
+        return result
+
+class HelpItem(models.Model):
+
+    help = models.ForeignKey(Help, on_delete=models.CASCADE)
+    item = models.ForeignKey(Item, on_delete=models.CASCADE)
+    amount = models.IntegerField()
+
+    def as_dict_agent(self):
+        result = model_to_dict(self, fields=None, exclude=None)
+        return result

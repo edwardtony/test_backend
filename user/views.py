@@ -38,8 +38,9 @@ firebase_admin.initialize_app(cred)
 
 message = messaging.Message(
     data={
-        "title":"Hola desde el server",
+        "title":"GEAD APP",
         "body":"Soy el cuerpo de la notificación",
+        "solicitude_id": "21",
     },
     topic= "ALL",
 )
@@ -155,21 +156,21 @@ def user_info(request):
         print(token)
         try:
             agent = Agent.objects.get(token=token)
-            print("USER", agent)
+            print("USER", agent.first_name)
             return JSONResponse({'login':{'agent':agent.as_dict_agent()}})
         except Exception as e:
             print(e)
 
         try:
             focal = EmpresaFocal.objects.get(token=token)
-            print("FOCAL", focal)
+            print("FOCAL", focal.name)
             return JSONResponse({'login':{'focal':focal.as_dict_agent()}})
         except Exception as e:
             print(e)
 
-        return JSONResponse({'error':{'code': 401, 'message':'Correo o contraseña incorrecto'}}, status=401)
+        return JSONResponse({'error':{'code': 401, 'message':'Correo o contraseña incorrecto'}})
     else:
-        return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}}, status=405)
+        return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}})
 
 
 
@@ -221,7 +222,6 @@ def solicitude_list(request, identifier):
     """
     List all code request, or create a new request.
     """
-    print("HI")
 
     if request.method == 'GET':
         solicitudes = Solicitude.objects.filter(closed=False, accepted=True, deadline__gte=datetime.now()).order_by('-id')
@@ -246,7 +246,7 @@ def solicitude_list(request, identifier):
                 solicitude = Solicitude.objects.get(pk=serializer.data['id'])
                 if 'product_list' in data:
                     for item in json.loads(request.POST.dict()['product_list']):
-                        Item(solicitude= solicitude, product= item['product'], amount= item['amount']).save()
+                        Item(solicitude= solicitude, product= item['product'], total= item['total'], remaining= item['remaining']).save()
                 solicitudes = Solicitude.objects.filter(closed=False, accepted=True, deadline__gte=datetime.now()).order_by('-id')
                 solicitudes_dict = [solicitude.as_dict_agent() for solicitude in solicitudes]
 
@@ -274,7 +274,6 @@ def solicitude_detail(request, identifier, pk_solicitude):
 
     if request.method == 'GET':
         #serializer = SolicitudeSerializer(solicitude)
-        print("SOLICITUDE", solicitude.as_dict_agent())
         return JSONResponse({'solicitude':solicitude.as_dict_agent()})
     elif request.method == 'DELETE':
         token = request.META['HTTP_AUTHORIZATION'].split(" ")[1]
@@ -286,40 +285,59 @@ def solicitude_detail(request, identifier, pk_solicitude):
         #     simple_delete_job_request(photo)
         # job_request.delete()
         return JSONResponse(solicitudes_dict)
+    # elif request.method == 'PUT':
+    #     data = QueryDict(request.body)
+    #     token = request.META['HTTP_AUTHORIZATION'].split(" ")[1]
+    #     solicitude = Solicitude.objects.filter(pk=pk_solicitude).first()
+    #     solicitude_temp = Solicitude.objects.get(pk=solicitude.pk)
+    #
+    #     focal = Focal(name=data['name'], RUC_or_DNI=data['ruc_or_dni'])
+    #     focal.save()
+    #     solicitude.focal = focal
+    #     solicitude.closed = True
+    #     solicitude.save()
+    #     solicitude.focal = None
+    #     solicitude.pk = None
+    #     solicitude.closed = False
+    #     solicitude.save()
+    #
+    #     data = QueryDict(request.body)
+    #
+    #     amount_list = json.loads(data['product_list'])
+    #     for (index, item) in enumerate(Solicitude.objects.get(pk=solicitude_temp.pk).item_set.all()):
+    #         print(index)
+    #         item.help = amount_list[index]
+    #         item.save()
+    #         item.pk = None
+    #         item.amount = item.amount - amount_list[index]
+    #         if item.amount != 0:
+    #             delete_item = False
+    #             item.help = 0
+    #             item.solicitude = solicitude
+    #             item.save()
+    #
+    #     if delete_item:
+    #         solicitude.delete()
+    #     send_email("DONACIÓN REALIZADA", solicitude)
+    #     return JSONResponse({}, status=200)
     elif request.method == 'PUT':
-        delete_item = True
         data = QueryDict(request.body)
-        token = request.META['HTTP_AUTHORIZATION'].split(" ")[1]
+        print(data)
         solicitude = Solicitude.objects.filter(pk=pk_solicitude).first()
-        solicitude_temp = Solicitude.objects.get(pk=solicitude.pk)
+        empresa_focal = EmpresaFocal.objects.filter(identifier=identifier).first()
+        help = Help(name=data['name'], RUC_or_DNI=data['ruc_or_dni'], empresa_focal=empresa_focal, solicitude=solicitude)
+        help.save()
 
-        focal = Focal(name=data['name'], RUC_or_DNI=data['ruc_or_dni'])
-        focal.save()
-        solicitude.focal = focal
-        solicitude.closed = True
-        solicitude.save()
-        solicitude.focal = None
-        solicitude.pk = None
-        solicitude.closed = False
-        solicitude.save()
-
-        data = QueryDict(request.body)
-
+        print("0s", solicitude.item_set.all().exclude(remaining=0).count())
         amount_list = json.loads(data['product_list'])
-        for (index, item) in enumerate(Solicitude.objects.get(pk=solicitude_temp.pk).item_set.all()):
-            print(index)
-            item.help = amount_list[index]
+        for (index, item) in enumerate(solicitude.item_set.all().exclude(remaining=0)):
+            print(index, item)
+            HelpItem(help= help, item= item, amount= amount_list[index]).save()
+            item.remaining = item.remaining - amount_list[index]
             item.save()
-            item.pk = None
-            item.amount = item.amount - amount_list[index]
-            if item.amount != 0:
-                delete_item = False
-                item.help = 0
-                item.solicitude = solicitude
-                item.save()
 
-        if delete_item:
-            solicitude.delete()
+        if solicitude.item_set.all().exclude(remaining=0).count() == 0:
+            solicitude.change_to_closed()
         send_email("DONACIÓN REALIZADA", solicitude)
         return JSONResponse({}, status=200)
     else:
@@ -448,6 +466,7 @@ def send_email(message, solicitude):
             "title":"GEAD APP",
             "body":message,
             "solicitude_id": str(solicitude.pk),
+            "image_url": solicitude.image_url,
         },
         topic= "ALL",
     )
