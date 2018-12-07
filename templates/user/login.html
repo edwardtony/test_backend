@@ -52,13 +52,16 @@
                               {% csrf_token %}
                                 <div class="form-group">
                                     <label>Usuario</label>
-                                    <input class="au-input au-input--full" type="text" name="username" placeholder="Usuario">
+                                    <input class="au-input au-input--full" type="text" name="username" placeholder="Usuario" required>
                                 </div>
                                 <div class="form-group">
                                     <label>Contraseña</label>
-                                    <input class="au-input au-input--full" type="password" name="password" placeholder="Contraseña">
+                                    <input class="au-input au-input--full" type="password" name="password" placeholder="Contraseña" required>
                                 </div>
-                                <button class="au-btn au-btn--block au-btn--green m-b-20" type="submit">register</button>
+                                <button class="au-btn au-btn--block au-btn--green m-b-20" type="submit">Iniciar Sesión</button>
+                                {% if message %}
+                                  <p style="color:red" class="text-center"> <b>*{{message}}*</b> </p>
+                                {% endif %}
                             </form>
                         </div>
                     </div>

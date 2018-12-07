@@ -6,8 +6,10 @@ from . import views
 
 app_name = 'users'
 urlpatterns = [
+    path('update_fcm_token/', views.update_fcm_token),
     path('send_email/', views.send_email),
-    path('register/', views.register),
+    path('send_massive_notification/', views.send_massive_notification, name="send_massive_notification"),
+    path('register/', views.register, name="register"),
     path('login/', views.login),
 	path('user_info/', views.user_info),
 	path('upload_image/', views.upload_image),
@@ -15,8 +17,9 @@ urlpatterns = [
 	path('<int:identifier>/donate/', views.donate),
 	path('<int:identifier>/solicitude/', views.solicitude_list),
 	path('<int:identifier>/solicitude/<int:pk_solicitude>/', views.solicitude_detail),
+	path('<int:identifier>/solicitude/<int:pk_solicitude>/item/<int:pk_item>/', views.update_item),
 
-    path('excel/', views.export_excel),
+    path('excel/', views.export_excel, name="excel"),
 
 
     path('index/',  views.index, name='index'),

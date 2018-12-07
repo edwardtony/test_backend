@@ -1,273 +1,261 @@
-{%load staticfiles %}
-<!DOCTYPE html>
-<html lang="en">
+{% extends 'user/base.html' %}
+{% load staticfiles %}
+{% load mathfilters %}
 
-<head>
-    <!-- Required meta tags-->
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+{% block title %}
+  <title>Detalle de la Solicitud</title>
+{% endblock %}
 
-    <!-- Title Page-->
-    <title>Home</title>
 
-    <!-- Fontfaces CSS-->
-    <link href="{% static 'css/font-face.css' %}" rel="stylesheet" media="all">
-    <link href="{% static 'vendor/font-awesome-4.7/css/font-awesome.min.css' %}" rel="stylesheet" media="all">
-    <link href="{% static 'vendor/font-awesome-5/css/fontawesome-all.min.css' %}" rel="stylesheet" media="all">
-    <link href="{% static 'vendor/mdi-font/css/material-design-iconic-font.min.css' %}" rel="stylesheet" media="all">
-
-    <!-- Bootstrap CSS-->
-    <link href="{% static 'vendor/bootstrap-4.1/bootstrap.min.css' %}" rel="stylesheet" media="all">
-
-    <!-- Vendor CSS-->
-    <link href="{% static 'vendor/animsition/animsition.min.css' %}" rel="stylesheet" media="all">
-    <link href="{% static 'vendor/bootstrap-progressbar/bootstrap-progressbar-3.3.4.min.css' %}" rel="stylesheet" media="all">
-    <link href="{% static 'vendor/wow/animate.css' %}" rel="stylesheet" media="all">
-    <link href="{% static 'vendor/css-hamburgers/hamburgers.min.css' %}" rel="stylesheet" media="all">
-    <link href="{% static 'vendor/slick/slick.css' %}" rel="stylesheet" media="all">
-    <link href="{% static 'vendor/select2/select2.min.css' %}" rel="stylesheet" media="all">
-    <link href="{% static 'vendor/perfect-scrollbar/perfect-scrollbar.css' %}" rel="stylesheet" media="all">
-
-    <!-- Main CSS-->
-    <link href="{% static 'css/theme.css' %}" rel="stylesheet" media="all">
-    <style>
-        .au-chat__content{
-            height: auto;
-        }
-    </style>
-</head>
-
-<body class="animsition">
-    <div class="page-wrapper">
-        <!-- HEADER MOBILE-->
-        <header class="header-mobile d-block d-lg-none">
-            <div class="header-mobile__bar">
-                <div class="container-fluid">
-                    <div class="header-mobile-inner">
-                        <a class="logo" href="index.html">
-                            <img src="{% static 'images/icon/logo.png' %}" alt="CoolAdmin" />
-                        </a>
-                        <button class="hamburger hamburger--slider" type="button">
-                            <span class="hamburger-box">
-                                <span class="hamburger-inner"></span>
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <nav class="navbar-mobile">
-            </nav>
-        </header>
-        <!-- END HEADER MOBILE-->
-
-        <!-- MENU SIDEBAR-->
-        <aside class="menu-sidebar d-none d-lg-block">
-            <div class="logo">
-                <a href="#">
-                    <img src="{% static 'images/icon/logo.png' %}" alt="Cool Admin" />
-                </a>
-            </div>
-            <div class="menu-sidebar__content js-scrollbar1">
-                <nav class="navbar-sidebar">
-                    <ul class="list-unstyled navbar__list">
-                        <li class="has-sub">
-                            <a class="js-arrow" href="../../home">
-                                <i class="fas fa-tachometer-alt"></i>Dashboard
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
-            </div>
-        </aside>
-        <!-- END MENU SIDEBAR-->
-
-        <!-- PAGE CONTAINER-->
-        <div class="page-container">
-            <!-- HEADER DESKTOP-->
-            <header class="header-desktop">
-                <div class="section__content section__content--p30">
-                    <div class="container-fluid">
-                        <div class="header-wrap">
-                            <form class="form-header" action="" method="POST">
-                            </form>
-                            <div class="header-button">
-                                <div class="account-wrap">
-                                    <div class="account-item clearfix js-item-menu">
+{% block body %}
+<!-- PAGE CONTAINER-->
+<div class="page-container">
+    <!-- HEADER DESKTOP-->
+    <header class="header-desktop">
+        <div class="section__content section__content--p30">
+            <div class="container-fluid">
+                <div class="header-wrap">
+                    <a target="_blank" href="" data-toggle="modal" data-target="#excelModal" class="btn btn-danger btn-sm">
+                        Exportar a excel
+                    </a>
+                    <a target="_blank" href="" data-toggle="modal" data-target="#notificationModal" class="btn btn-success btn-sm">
+                        Mensaje masivo
+                    </a>
+                    <div class="header-button">
+                        <div class="account-wrap">
+                            <div class="account-item clearfix js-item-menu">
+                                <div class="image">
+                                    <img src="{% static 'images/logo.png' %}" alt="Logo GEAD" />
+                                </div>
+                                <div class="content">
+                                    <a class="js-acc-btn" href="#">Agente</a>
+                                </div>
+                                <div class="account-dropdown js-dropdown">
+                                    <div class="info clearfix">
                                         <div class="image">
-                                            <img src="{% static 'images/icon/avatar-01.jpg' %}" alt="John Doe" />
+                                            <a href="#">
+                                                <img src="{% static 'images/logo.png' %}" alt="Logo GEAD" />
+                                            </a>
                                         </div>
                                         <div class="content">
-                                            <a class="js-acc-btn" href="#">Agente</a>
+                                            <h5 class="name">
+                                                <a href="#">Agente</a>
+                                            </h5>
+                                            <span class="email">agente@gmail.com</span>
                                         </div>
-                                        <div class="account-dropdown js-dropdown">
-                                            <div class="info clearfix">
-                                                <div class="image">
-                                                    <a href="#">
-                                                        <img src="{% static 'images/icon/avatar-01.jpg' %}" alt="John Doe" />
-                                                    </a>
-                                                </div>
-                                                <div class="content">
-                                                    <h5 class="name">
-                                                        <a href="#">Agente</a>
-                                                    </h5>
-                                                    <span class="email">agente@gmail.com</span>
-                                                </div>
-                                            </div>
-                                            <div class="account-dropdown__footer">
-                                                <a href="../login">
-                                                    <i class="zmdi zmdi-power"></i>Salir
-                                                  </a>
-                                            </div>
-                                        </div>
+                                    </div>
+                                    <div class="account-dropdown__footer">
+                                        <a href="{% url 'users:index' %}">
+                                          <i class="zmdi zmdi-power"></i>Salir
+                                        </a>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </header>
-            <!-- END HEADER DESKTOP-->
+            </div>
+        </div>
+    </header>
+    <!-- END HEADER DESKTOP-->
 
-            <!-- MAIN CONTENT-->
-            <div class="main-content">
-                <div class="section__content section__content--p30">
-                    <div class="container-fluid">
-                        <div class="row">
-                            <div class="col-lg-12">
-                                <div class="au-card au-card--no-shadow au-card--no-pad m-b-40">
-                                    <div class="au-card-title" style="background-image:url('images/bg-title-02.jpg');">
-                                        <div class="bg-overlay bg-overlay--blue"></div>
-                                        <h3>
-                                            <i class="zmdi zmdi-account-calendar"></i>Detalle de la Solicitud
-                                        </h3>
-                                    </div>
-                                    <div class="au-inbox-wrap js-inbox-wrap">
-                                        <div class="au-chat">
-                                            <div class="au-chat__title">
-                                                <div class="au-chat-info">
-                                                    <div class="avatar-wrap">
-                                                        <div class="avatar avatar--small">
-                                                          {% if not solicitude.image_url == "" %}
-                                                              <img src="https://gead-app.herokuapp.com/users/media/{{solicitude.image_url}}" >
-                                                          {% else %}
-                                                              <img src="{% static 'images/logo.png' %}" >
-                                                          {% endif %}
-                                                        </div>
-                                                    </div>
-                                                    <span class="nick">
-                                                        <h5 class="name">{{solicitude.title}}</h5>
-                                                        <p>{{solicitude.authority.first_name}}</p>
-                                                    </span>
+    <!-- MAIN CONTENT-->
+    <div class="main-content">
+        <div class="section__content section__content--p30">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="au-card au-card--no-shadow au-card--no-pad m-b-40">
+                            <div class="au-card-title" style="background-image:url('images/bg-title-02.jpg');">
+                                <div class="bg-overlay bg-overlay--blue"></div>
+                                <h3>
+                                    <i class="zmdi zmdi-account-calendar"></i>Detalle de la Solicitud
+                                </h3>
+                            </div>
+                            <div class="au-inbox-wrap js-inbox-wrap">
+                                <div class="au-chat">
+                                    <div class="au-chat__title">
+                                        <div class="au-chat-info">
+                                            <div class="avatar-wrap">
+                                                <div class="avatar avatar--small">
+                                                  {% if not solicitude.image_url == "" %}
+                                                      <!-- <img src="https://gead-app.herokuapp.com/users/media/{{solicitude.image_url}}" > -->
+                                                      <img src="{{media}}{{solicitude.image_url}}" >
+                                                  {% else %}
+                                                      <img src="{% static 'images/logo.png' %}" >
+                                                  {% endif %}
                                                 </div>
                                             </div>
-                                            <div class="au-chat__content">
-                                                <div class="recei-mess-wrap">
-                                                    <span class="mess-time">18 de Junio del 2018</span>
-                                                        <div class="recei-mess__inner">
-                                                            <div class="recei-mess-list">
-                                                                <div class="row">
-                                                                    <div class="col-6">
-                                                                        <div class="recei-mess">
-                                                                            <h4>Detalle de la Solicitud</h4> <br/>
-                                                                            <b>Título:</b> {{solicitude.title}} <br/>
-                                                                            <b>Emergencia:</b> {{solicitude.emergency}} <br/>
-                                                                            <b>Prioridad:</b>
+                                            <span class="nick">
+                                                <h5 class="name">{{solicitude.title}}</h5>
+                                                <p> Autoridad: {{solicitude.agent.name}}</p>
+                                                {% if solicitude.closed %}
+                                                  <b style="color: rgb(0, 123, 255);">CERRADO</b>
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="au-chat__content">
+                                        <div class="recei-mess-wrap">
+                                            <span class="mess-time">{{solicitude.date}}</span>
+                                                <div class="recei-mess__inner">
+                                                    <div class="recei-mess-list">
+                                                        <div class="row">
+                                                            <div class="col-7">
+                                                                <div class="recei-mess">
+                                                                    <h4>Detalle de la Solicitud</h4> <br/>
+                                                                    <b>Título:</b> {{solicitude.title}} <br/>
+                                                                    <b>Emergencia:</b> {{solicitude.emergency}} <br/>
+                                                                    <b>Prioridad:</b>
 
-                                                                            {% if solicitude.priority %}
-                                                                                {{solicitude.priority}}
-                                                                            {% else %}
-                                                                                Prioridad no asignada
-                                                                            {% endif %}
+                                                                    {% if solicitude.priority %}
+                                                                        {{solicitude.priority}}
+                                                                    {% else %}
+                                                                        Prioridad no asignada
+                                                                    {% endif %}
 
-                                                                            <br/> <br/>
-                                                                            <b>Región:</b> {{solicitude.region}} <br/>
-                                                                            <b>Provincia:</b> {{solicitude.province}} <br/>
-                                                                            <b>Distrito:</b> {{solicitude.district}} <br/><br/>
-                                                                            <div class="table-responsive table-responsive-data2">
-                                                                                <table class="table table-striped">
-                                                                                    <thead>
-                                                                                        <tr>
-                                                                                            <th>Productos</th>
-                                                                                            <th></th>
-                                                                                            <th class="text-right">Cantidad</th>
-                                                                                        </tr>
-                                                                                    </thead>
-                                                                                    <tbody>
-                                                                                        {% for item in solicitude.item_set.all %}
-                                                                                            <tr>
-                                                                                                <td>{{item.product}}</td>
-                                                                                                <td></td>
-                                                                                                <td class="text-right">{{item.remaining}}</td>
-                                                                                            </tr>
-                                                                                        {% endfor %}
-                                                                                    </tbody>
-                                                                                </table>
+                                                                    <br/> <br/>
+                                                                    <b>Región:</b> {{solicitude.region}} <br/>
+                                                                    <b>Provincia:</b> {{solicitude.province}} <br/>
+                                                                    <b>Distrito:</b> {{solicitude.district}}
+
+                                                                    <br/><br/>
+                                                                    <b>Autoridad:</b> {{solicitude.agent.name}} <br>
+                                                                    <b>Email:</b> {{solicitude.agent.email}} <br>
+                                                                    <b>Teléfono:</b> XXX XXX XXX
+                                                                    <br><br>
+
+
+                                                                    <h4 class="text-center"> <b> Requerimientos ({{solicitude.item_set.all|length}})</b> </h4><br>
+                                                                    <div class="table-responsive table-responsive-data2">
+                                                                        <table class="table table-striped">
+                                                                            <thead>
+                                                                                <tr>
+                                                                                    <th>Requerimiento</th>
+                                                                                    <th></th>
+                                                                                    <th class="text-right">Cantidad</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                              <tbody>
+                                                                                  {% for item in solicitude.item_set.all %}
+                                                                                      <tr>
+                                                                                          <td>{{item.product}}</td>
+                                                                                          <td></td>
+                                                                                          <td class="text-right">{{item.total|sub:item.remaining}} / {{item.total}}</td>
+                                                                                      </tr>
+
+                                                                                  {% empty %}
+                                                                                  <tr><td colspan="3">No se asignaron requerimientos<td></tr>
+
+                                                                                  {% endfor %}
+                                                                              </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                    <br><br>
+                                                                    <h4 class="text-center"> <b> Ayudas ({{helps|length}})</b> </h4>
+                                                                    <hr>
+                                                                    {% for help in helps %}
+                                                                      <b> {{help.empresa_focal.name}} </b> <br>
+                                                                      <b> {{help.name}} - {{help.RUC_or_DNI}}</b>
+
+                                                                      <div class="table-responsive table-responsive-data2">
+                                                                          <table class="table table-striped">
+                                                                              <thead>
+                                                                                  <tr>
+                                                                                      <th>Requerimiento</th>
+                                                                                      <th></th>
+                                                                                      <th class="text-right">Cantidad</th>
+                                                                                  </tr>
+                                                                              </thead>
+                                                                                <tbody>
+                                                                                  <tr>
+                                                                                      <td>{{help.item.product}}</td>
+                                                                                      <td></td>
+                                                                                      <td class="text-right">{{help.amount}}</td>
+                                                                                  </tr>
+                                                                                </tbody>
+                                                                          </table>
+                                                                      </div>
+                                                                      <br>
+                                                                    {% empty %}
+                                                                      <p class="text-center"> <b> No hay ayudas realizadas </b> </p>
+                                                                    {% endfor %}
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-5">
+                                                                <div class="recei-mess">
+                                                                    <h4>Formulario</h4> <br/>
+                                                                    <form class="login100-form validate-form" method="post" action="../../detail/{{pk_solicitude}}/">
+                                                                        {% csrf_token %}
+                                                                        <div class="row form-group">
+                                                                          <div class="col col-md-12">
+                                                                            <div class="form-group">
+                                                                              <label for="exampleInputEmail1">Información del receptor:</label>
+                                                                              <input type="text" value="{{solicitude.receiver_name}}" class="form-control" name="name" placeholder="Nombre">
+                                                                            </div>
+                                                                            <div class="form-group">
+                                                                              <input type="number" value="{{solicitude.receiver_dni}}"onKeyPress="if(this.value.length==8) return false;" class="form-control" name="dni" placeholder="DNI">
+                                                                            </div>
+                                                                            <div class="form-group">
+                                                                              <input type="number" value="{{solicitude.receiver_phone}}" onKeyPress="if(this.value.length==9) return false;" class="form-control" name="phone" placeholder="Teléfono">
+                                                                            </div>
+                                                                          </div>
+                                                                        </div>
+                                                                        <div class="row form-group">
+                                                                            <div class="col col-md-5">
+                                                                                <label for="select" class=" form-control-label">Prioridad</label>
+                                                                            </div>
+                                                                            <div class="col-md-7">
+                                                                                <select required name="select" id="select" class="form-control-sm form-control" required>
+                                                                                    <option value="">Seleccionar Prioridad</option>
+                                                                                    <option value="Prioridad 1" {% if solicitude.priority == 'Prioridad 1' %} selected {% endif %}>Prioridad 1 (más importante)</option>
+                                                                                    <option value="Prioridad 2" {% if solicitude.priority == 'Prioridad 2' %} selected {% endif %}>Prioridad 2</option>
+                                                                                    <option value="Prioridad 3" {% if solicitude.priority == 'Prioridad 3' %} selected {% endif %}>Prioridad 3 (menos importante)</option>
+                                                                                </select>
                                                                             </div>
                                                                         </div>
-                                                                    </div>
-                                                                    <div class="col-6">
-                                                                        <div class="recei-mess">
-                                                                            <h4>Formulario</h4> <br/>
-                                                                            <form class="login100-form validate-form" method="post" action="../../detail/{{pk_solicitude}}/">
-                                                                                {% csrf_token %}
-                                                                                <div class="row form-group">
-                                                                                    <div class="col col-md-3">
-                                                                                        <label for="select" class=" form-control-label">Prioridad</label>
-                                                                                    </div>
-                                                                                    <div class="col-12 col-md-9">
-                                                                                        <select required name="select" id="select" class="form-control-sm form-control">
-                                                                                            <option value="0">Seleccionar Prioridad</option>
-                                                                                            <option value="1">Prioridad 1</option>
-                                                                                            <option value="2">Prioridad 2</option>
-                                                                                            <option value="3">Prioridad 3</option>
-                                                                                            <option value="4">Prioridad 4</option>
-                                                                                            <option value="5">Prioridad 5</option>
-                                                                                        </select>
+                                                                        <div class="row form-group">
+                                                                            <div class="col col-md-12">
+                                                                                <div class="form-check">
+                                                                                    <div class="checkbox">
+                                                                                        <label for="accepted" class="form-check-label ">
+                                                                                            <input type="checkbox" id="accepted" name="accepted" {% if solicitude.accepted %}checked="checked"{% endif %} value="True" class="form-check-input">Aceptar Solicitud
+                                                                                        </label>
                                                                                     </div>
                                                                                 </div>
-                                                                                <div class="row form-group">
-                                                                                    <div class="col col-md-12">
-                                                                                        <div class="form-check">
-                                                                                            <div class="checkbox">
-                                                                                                <label for="accepted" class="form-check-label ">
-                                                                                                    <input type="checkbox" id="accepted" name="accepted" {% if solicitude.accepted %}checked="checked"{% endif %} value="True" class="form-check-input">Aceptar Solicitud
-                                                                                                </label>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                                <div class="row form-group">
-                                                                                    <div class="col col-md-12">
-                                                                                        <div class="form-check">
-                                                                                            <div class="checkbox">
-                                                                                                <label for="imgaccepted" class="form-check-label ">
-                                                                                                    <input type="checkbox" id="imgaccepted" name="imgaccepted" {% if solicitude.image_accepted %}checked="checked"{% endif %}  value="True" class="form-check-input">Aceptar Imagen
-                                                                                                </label>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                                {% if message %}
-                                                                                    <h5 style="color:red">Debe asignar una prioridad</h5> <br>
-                                                                                {% endif %}
-                                                                                <button type="submit" class="btn btn-primary btn-sm">
-                                                                                    Enviar
-                                                                                </button>
-                                                                            <form/>
+                                                                            </div>
                                                                         </div>
-                                                                    </div>
+                                                                        <div class="row form-group">
+                                                                            <div class="col col-md-12">
+                                                                                <div class="form-check">
+                                                                                    <div class="checkbox">
+                                                                                        <label for="imgaccepted" class="form-check-label ">
+                                                                                            <input type="checkbox" id="imgaccepted" name="imgaccepted" {% if solicitude.image_accepted %}checked="checked"{% endif %}  value="True" class="form-check-input">Aceptar Imagen
+                                                                                        </label>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        {% if message %}
+                                                                            <h5 style="color:red">Debe asignar una prioridad</h5> <br>
+                                                                        {% endif %}
+                                                                        <button type="submit" class="btn btn-primary btn-sm">
+                                                                            Enviar
+                                                                        </button>
+                                                                    <form/>
                                                                 </div>
-                                                                <div class="row" style="margin-top:20px; margin-bottom:20px">
-                                                                    <div class="col-6">
-                                                                        <div class="recei-mess">
-                                                                            <h4>Imagen</h4> <br/>
-                                                                            {% if not solicitude.image_url == "" %}
-                                                                                <img src="https://gead-app.herokuapp.com/users/media/{{solicitude.image_url}}" >
-                                                                            {% else %}
-                                                                                <b>No hay imagen</b><br/>
-                                                                            {% endif %}
-                                                                        </div>
-                                                                    </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="row" style="margin-top:20px; margin-bottom:20px">
+                                                            <div class="col-7">
+                                                                <div class="recei-mess">
+                                                                    <h4>Imagen</h4> <br/>
+                                                                    {% if not solicitude.image_url == "" %}
+                                                                        <!-- <img src="https://gead-app.herokuapp.com/users/media/{{solicitude.image_url}}" > -->
+                                                                        <img src="{{media}}{{solicitude.image_url}}" >
+                                                                    {% else %}
+                                                                        <b>No hay imagen</b><br/>
+                                                                    {% endif %}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -283,35 +271,7 @@
                 </div>
             </div>
         </div>
-        <!-- END PAGE CONTAINER-->
-
     </div>
-
-    <!-- Jquery JS-->
-    <script src="{% static 'vendor/jquery-3.2.1.min.js' %}"></script>
-    <!-- Bootstrap JS-->
-    <script src="{% static 'vendor/bootstrap-4.1/popper.min.js' %}"></script>
-    <script src="{% static 'vendor/bootstrap-4.1/bootstrap.min.js' %}"></script>
-    <!-- Vendor JS       -->
-    <script src="{% static 'vendor/slick/slick.min.js' %}">
-    </script>
-    <script src="{% static 'vendor/wow/wow.min.js' %}"></script>
-    <script src="{% static 'vendor/animsition/animsition.min.js' %}"></script>
-    <script src="{% static 'vendor/bootstrap-progressbar/bootstrap-progressbar.min.js' %}">
-    </script>
-    <script src="{% static 'vendor/counter-up/jquery.waypoints.min.js' %}"></script>
-    <script src="{% static 'vendor/counter-up/jquery.counterup.min.js' %}">
-    </script>
-    <script src="{% static 'vendor/circle-progress/circle-progress.min.js' %}"></script>
-    <script src="{% static 'vendor/perfect-scrollbar/perfect-scrollbar.js' %}"></script>
-    <script src="{% static 'vendor/chartjs' %}/Chart.bundle.min.js' %}"></script>
-    <script src="{% static 'vendor/select2/select2.min.js' %}">
-    </script>
-
-    <!-- Main JS-->
-    <script src="{% static 'js/main.js' %}"></script>
-
-</body>
-
-</html>
-<!-- end document-->
+</div>
+<!-- END PAGE CONTAINER-->
+{% endblock %}

@@ -9,6 +9,7 @@ from django.http import HttpResponse
 from django.conf import settings
 from mailjet_rest import Client
 from openpyxl import Workbook
+from openpyxl.styles import PatternFill
 from user.serializers import *
 from user.models import *
 from datetime import datetime, timedelta
@@ -28,8 +29,6 @@ from firebase_admin import credentials, messaging
 
 
 #-------------------------------GLOBAL VARIABLES-------------------------------
-
-
 
 
 cred = credentials.Certificate("geadapp-firebase-adminsdk-x2a5s-df26e617a9.json")
@@ -57,10 +56,8 @@ message = messaging.Message(
 #     topic= "ALL",
 # )
 
-response = messaging.send(message)
-
-
-print('Successfully sent message:', response)
+# response = messaging.send(message)
+# print('Successfully sent message:', response)
 
 #-------------------------------UTILS-------------------------------
 
@@ -105,19 +102,29 @@ def register(request):
         user['password'] = pbkdf2_sha256.encrypt(user['password'],rounds=12000,salt_size=32)
         user['identifier'] = generate_identifier()
         user['token'] = generate_token(user)
-
-        serializer = AgentSerializer(data=user)
+        prefix = user['code'][0:3]
+        if prefix == "AUT":
+            print("AUT")
+            serializer = AgentSerializer(data=user)
+        elif prefix == "PFO":
+            print("PFO")
+            serializer = EmpresaFocalSerializer(data=user)
+        else:
+            return JSONResponse({'error':{'code': 401, 'message':'Código incorrecto'}})
 
         if serializer.is_valid():
             try:
                 validate_email(user['email'])
             except ValidationError as e:
-                return JSONResponse(e, status=404)
+                return JSONResponse({'error':{'code': 401, 'message':'Correo electrónico con formato incorrecto'}})
             serializer.save()
-            user_return = Agent.objects.get(pk= serializer.data['id'])
-            return JSONResponse(user_return.as_dict_agent(), status=201)
+            #user_return = Agent.objects.get(pk= serializer.data['id'])
+            #return JSONResponse(user_return.as_dict_agent(), status=201)
+            print(user)
+            send_email_register(user)
+            return JSONResponse({})
         return JSONResponse({'error':{'code': 401, 'message':'Este correo ya ha sido usado'}})
-    return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}})
+    return JSONResponse({'error':{'code': 405, 'message':'Método Http inválido'}})
 
 @csrf_exempt
 def login(request):
@@ -143,9 +150,8 @@ def login(request):
         except EmpresaFocal.DoesNotExist as e:
             print(e)
 
-        print("HI")
         return JSONResponse({'error':{'code': 401, 'message':'Correo o contraseña incorrecto'}})
-    return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}})
+    return JSONResponse({'error':{'code': 405, 'message':'Método Http inválido'}})
 
 @csrf_exempt
 def user_info(request):
@@ -155,7 +161,7 @@ def user_info(request):
         print(token)
         try:
             agent = Agent.objects.get(token=token)
-            print("USER", agent.first_name)
+            print("USER", agent.name)
             return JSONResponse({'login':{'agent':agent.as_dict_agent()}})
         except Exception as e:
             print(e)
@@ -169,7 +175,7 @@ def user_info(request):
 
         return JSONResponse({'error':{'code': 401, 'message':'Correo o contraseña incorrecto'}})
     else:
-        return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}})
+        return JSONResponse({'error':{'code': 405, 'message':'Método Http inválido'}})
 
 
 
@@ -249,13 +255,13 @@ def solicitude_list(request, identifier):
                 solicitudes = Solicitude.objects.filter(closed=False, accepted=True, deadline__gte=datetime.now()).order_by('-id')
                 solicitudes_dict = [solicitude.as_dict_agent() for solicitude in solicitudes]
 
-                send_email("SOLICITUD CREADA", solicitude)
+                #send_email("SOLICITUD CREADA", solicitude)
                 return JSONResponse({'solicitudes':solicitudes_dict}, status=201)
             return JSONResponse({'error':{'code': 401, 'message':'Datos no válidos '}})
         else:
             return JSONResponse({'error':{'code': 401, 'message':'Correo o contraseña incorrecto'}})
     else:
-        return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}})
+        return JSONResponse({'error':{'code': 405, 'message':'Método Http inválido'}})
 
 from django.http import QueryDict
 
@@ -343,62 +349,237 @@ def solicitude_detail(request, identifier, pk_solicitude):
         send_email("DONACIÓN REALIZADA", solicitude)
         return JSONResponse({}, status=200)
     else:
-        return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}})
+        return JSONResponse({'error':{'code': 405, 'message':'Método Http inválido'}})
+
+@csrf_exempt
+def update_item(request, identifier, pk_solicitude, pk_item):
+    if request.method == 'PUT':
+        solicitude = Solicitude.objects.filter(pk=pk_solicitude).first()
+        empresa_focal = EmpresaFocal.objects.filter(identifier=identifier).first()
+        item = solicitude.item_set.get(pk=pk_item)
+        print("ITEM", item)
+        if solicitude.closed:
+            return JSONResponse({'error':{'code': 401, 'message':'La solicitud ya ha sido cerrada'}})
+
+        data = QueryDict(request.body)
+        help = Help(name=data['name'], RUC_or_DNI=data['ruc_or_dni'], empresa_focal=empresa_focal, item=item, amount= int(data['amount']))
+        help.save()
+
+        if item.remaining <= 0:
+            return JSONResponse({'error':{'code': 401, 'message':'El requerimiento ya ha sido atendido'}})
+        else:
+            item.remaining = item.remaining - int(data['amount'])
+            item.save()
+
+        if solicitude.item_set.all().exclude(remaining=0).count() == 0:
+            solicitude.change_to_closed()
+        #send_email("DONACIÓN REALIZADA", solicitude)
+        return JSONResponse({"solicitude": solicitude.as_dict_agent()})
+    else:
+        return JSONResponse({'error':{'code': 405, 'message':'Método Http inválido'}})
+
 
 @csrf_exempt
 def upload_image(request):
     if request.method == 'POST' and request.FILES['upload']:
         image = request.FILES['upload']
+        print("IMAGE", image)
         fs = FileSystemStorage()
         path = str(random.randint(0,9999999999)) + ".png"
         filename = fs.save(path, image)
-        print(filename)
+        print("FILENAME", filename)
         return JSONResponse({'image_url': filename}, status=201)
-    return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}})
+    return JSONResponse({'error':{'code': 405, 'message':'Método Http inválido'}})
 
 #---------------------------------EXCEL-------------------------------------
+from openpyxl.styles import Font
+
 @csrf_exempt
 def export_excel(request):
     if request.method == 'GET':
-        solicitudes = Solicitude.objects.all()
+        closed = request.GET["closed"]
+        period = request.GET["period"]
+
+        print(datetime.today().weekday())
+
+        current = {
+            "week":datetime.today().weekday(),
+            "month":datetime.today().day,
+            "all": 9999
+        }
+
+        day_offset = datetime.now().date() - timedelta(days=current[period])
+
+        if closed == "all":
+            solicitudes = Solicitude.objects.filter(date__gte=day_offset).order_by('-date')
+        elif closed == "closed":
+            solicitudes = Solicitude.objects.filter(closed=True, date__gte=day_offset).order_by('-date')
+        elif closed == "open":
+            solicitudes = Solicitude.objects.filter(closed=False, date__gte=day_offset).order_by('-date')
+
         wb = Workbook()
         ws = wb.active
-        ws['B2'] = "REPORTE DE SOLICITUDES"
-        ws.merge_cells('B2:J2')
+        ws2 = wb.create_sheet()
+        ws3 = wb.create_sheet()
 
-#GEAD
-        ws['B4'] = "Código"
-        ws['C4'] = "Agente"
-        ws['D4'] = "Autoridad"
-        ws['E4'] = "Título"
-        ws['F4'] = "Emergencia"
-        ws['G4'] = "Distrito"
-        ws['H4'] = "Provincia"
-        ws['I4'] = "Región"
-        ws['J4'] = "Magnitud"
-        ws['K4'] = "Fecha"
+        ws.title = 'Solicitudes'
+        ws2.title = 'Requerimientos'
+        ws3.title = 'Ayudas'
 
-        start_index = 5
-        file_name = "ReporteSolicitudes {0}.xlsx".format(datetime.now().strftime("%d/%m/%y %H:%M"))
+        ws.merge_cells('B2:D2')
+        ws2.merge_cells('B2:D2')
+        ws3.merge_cells('B2:D2')
 
+        redFill = PatternFill(start_color='FFFF0000',end_color='FFFF0000',fill_type='solid')
+        headerFill = PatternFill(start_color='E2434B', end_color='E2434B', fill_type='solid')
+        bodyFill = PatternFill(start_color='F2F2F2', end_color='F2F2F2', fill_type='solid')
+        titleFill = PatternFill(start_color='CA182F', end_color='CA182F', fill_type='solid')
+
+        headerTexts = ["Código","Autor","Título","Emergencia","Región","Provincia","Distrito","Prioridad","Fecha","Cerrado","Nombre","DNI","Teléfono"]
+        headerTexts2 = ["Código de Solicitud","Código de Requerimiento","Requerimiento","Total","Faltante"]
+        headerTexts3 = ["Código de Requerimiento","Código de Ayuda","Institución","Representante","RUC o DNI","Cantidad"]
+
+        ws['B2'] = "LISTA DE SOLICITUDES"
+        ws2['B2'] = "LISTA DE REQUERIMIENTOS"
+        ws3['B2'] = "LISTA DE AYUDAS"
+
+        ws.cell(row=2, column=2).fill = titleFill
+        ws.cell(row=2, column=2).font = Font(color="FFFFFF")
+
+        ws2.cell(row=2, column=2).fill = titleFill
+        ws2.cell(row=2, column=2).font = Font(color="FFFFFF")
+
+        ws3.cell(row=2, column=2).fill = titleFill
+        ws3.cell(row=2, column=2).font = Font(color="FFFFFF")
+
+        for i in range(3, 16):
+            cell = ws.cell(row=4, column=i)
+            cell.value = headerTexts[i - 3]
+            cell.fill = headerFill
+            cell.font = Font(color="FFFFFF")
+
+        ws.cell(row=3, column=13).value = "Receptor"
+        ws.cell(row=3, column=13).fill = headerFill
+        ws.cell(row=3, column=13).font = Font(color="FFFFFF")
+        ws.merge_cells('M3:O3')
+
+        for i in range(4, 9):
+            cell = ws2.cell(row=4, column=i)
+            cell.value = headerTexts2[i - 4]
+            cell.fill = headerFill
+            cell.font = Font(color="FFFFFF")
+
+        for i in range(3, 9):
+            cell = ws3.cell(row=4, column=i)
+            cell.value = headerTexts3[i - 3]
+            cell.fill = headerFill
+            cell.font = Font(color="FFFFFF")
+
+        start_index_1 = 5
+        start_index_2 = 5
+        start_index_3 = 5
+
+
+        #SOLICITUDES LIST
         for solicitude in solicitudes:
-            ws.cell(row=start_index, column=2).value = "#GEAD" + str(solicitude.pk)
-            ws.cell(row=start_index, column=3).value = solicitude.agent.first_name
-            ws.cell(row=start_index, column=4).value = solicitude.authority.first_name
-            ws.cell(row=start_index, column=5).value = solicitude.title
-            ws.cell(row=start_index, column=6).value = solicitude.emergency
-            ws.cell(row=start_index, column=7).value = solicitude.district
-            ws.cell(row=start_index, column=8).value = solicitude.province
-            ws.cell(row=start_index, column=9).value = solicitude.region
-            ws.cell(row=start_index, column=10).value = solicitude.priority
-            ws.cell(row=start_index, column=11).value = solicitude.date.strftime('%d/%m/%y')
-            start_index+=1
-            for item in solicitude.item_set.all():
-                ws.cell(row=start_index, column=3).value = item.pk
-                ws.cell(row=start_index, column=4).value = item.product
-                ws.cell(row=start_index, column=5).value = item.remaining
-                start_index+=1
+            ws.cell(row=start_index_1, column=2).value = '=HYPERLINK("#Requerimientos!D{}:H{}","Ver Requerimientos")'.format(str(start_index_2), str(start_index_2 + solicitude.item_set.count() - 1))
+            ws.cell(row=start_index_1, column=2).font = Font(color="E2434B")
 
+            ws.cell(row=start_index_1, column=3).value = "#GEAD" + str(solicitude.pk)
+            ws.cell(row=start_index_1, column=3).fill = bodyFill
+
+            ws.cell(row=start_index_1, column=4).value = solicitude.agent.name
+            ws.cell(row=start_index_1, column=4).fill = bodyFill
+
+            ws.cell(row=start_index_1, column=5).value = solicitude.title
+            ws.cell(row=start_index_1, column=5).fill = bodyFill
+
+            ws.cell(row=start_index_1, column=6).value = solicitude.emergency
+            ws.cell(row=start_index_1, column=6).fill = bodyFill
+
+            ws.cell(row=start_index_1, column=7).value = solicitude.region
+            ws.cell(row=start_index_1, column=7).fill = bodyFill
+
+            ws.cell(row=start_index_1, column=8).value = solicitude.province
+            ws.cell(row=start_index_1, column=8).fill = bodyFill
+
+            ws.cell(row=start_index_1, column=9).value = solicitude.district
+            ws.cell(row=start_index_1, column=9).fill = bodyFill
+
+            ws.cell(row=start_index_1, column=10).value = solicitude.priority
+            ws.cell(row=start_index_1, column=10).fill = bodyFill
+
+            ws.cell(row=start_index_1, column=11).value = solicitude.date.strftime('%d/%m/%y')
+            ws.cell(row=start_index_1, column=11).fill = bodyFill
+
+            ws.cell(row=start_index_1, column=12).value = "Cerrado" if solicitude.closed else "Abierto"
+            ws.cell(row=start_index_1, column=12).fill = bodyFill
+
+            if solicitude.closed:
+                ws.cell(row=start_index_1, column=12).fill = redFill
+
+            ws.cell(row=start_index_1, column=13).value = solicitude.receiver_name
+            ws.cell(row=start_index_1, column=13).fill = bodyFill
+
+            ws.cell(row=start_index_1, column=14).value = solicitude.receiver_dni
+            ws.cell(row=start_index_1, column=14).fill = bodyFill
+
+            ws.cell(row=start_index_1, column=15).value = solicitude.receiver_phone
+            ws.cell(row=start_index_1, column=15).fill = bodyFill
+
+            start_index_1+=1
+
+            #REQUERIMIENTOS LIST
+            for item in solicitude.item_set.all():
+                ws2.cell(row=start_index_2, column=2).value = '=HYPERLINK("#Solicitudes!C{}:O{}","Volver a la Solicitud")'.format(str(start_index_1 - 1), str(start_index_1 - 1))
+                ws2.cell(row=start_index_2, column=2).font = Font(color="E2434B")
+
+                ws2.cell(row=start_index_2, column=3).value = '=HYPERLINK("#Ayudas!C{}:H{}","Ver Ayudas")'.format(str(start_index_3), str(start_index_3 + item.help_set.count() - 1))
+                ws2.cell(row=start_index_2, column=3).font = Font(color="E2434B")
+
+                ws2.cell(row=start_index_2, column=4).value = "#GEAD" + str(solicitude.pk)
+                ws2.cell(row=start_index_2, column=4).fill = bodyFill
+
+                ws2.cell(row=start_index_2, column=5).value = item.pk
+                ws2.cell(row=start_index_2, column=5).fill = bodyFill
+
+                ws2.cell(row=start_index_2, column=6).value = item.product
+                ws2.cell(row=start_index_2, column=6).fill = bodyFill
+
+                ws2.cell(row=start_index_2, column=7).value = item.total
+                ws2.cell(row=start_index_2, column=7).fill = bodyFill
+
+                ws2.cell(row=start_index_2, column=8).value = item.remaining
+                ws2.cell(row=start_index_2, column=8).fill = bodyFill
+
+                start_index_2+=1
+
+                #AYUDAS LIST
+                for help in item.help_set.all():
+                    ws3.cell(row=start_index_3, column=2).value = '=HYPERLINK("#Requerimientos!D{}:H{}","Volver a Requerimiento")'.format(str(start_index_2 - 1), str(start_index_2 - 1))
+                    ws3.cell(row=start_index_3, column=2).font = Font(color="E2434B")
+
+                    ws3.cell(row=start_index_3, column=3).value = item.pk
+                    ws3.cell(row=start_index_3, column=3).fill = bodyFill
+
+                    ws3.cell(row=start_index_3, column=4).value = help.pk
+                    ws3.cell(row=start_index_3, column=4).fill = bodyFill
+
+                    ws3.cell(row=start_index_3, column=5).value = help.empresa_focal.name
+                    ws3.cell(row=start_index_3, column=5).fill = bodyFill
+
+                    ws3.cell(row=start_index_3, column=6).value = help.name
+                    ws3.cell(row=start_index_3, column=6).fill = bodyFill
+
+                    ws3.cell(row=start_index_3, column=7).value = help.RUC_or_DNI
+                    ws3.cell(row=start_index_3, column=7).fill = bodyFill
+
+                    ws3.cell(row=start_index_3, column=8).value = help.amount
+                    ws3.cell(row=start_index_3, column=8).fill = bodyFill
+
+                    start_index_3+=1
+
+        file_name = "ReporteSolicitudes {0}.xlsx".format(datetime.now().strftime("%d/%m/%y %H:%M"))
         response = HttpResponse(content_type = "application/ms-excel")
         content = "attachment; filename = {0}".format(file_name)
         response['Content-Disposition'] = content
@@ -414,7 +595,7 @@ def forgotten_password(request):
         data = get_data_from_request(request)
         send_email("Se ha enviado un correo a {} para que reinicie su cuenta".format(data['email']), None)
         return JSONResponse({},status=200)
-    return JSONResponse({'error':{'code': 405, 'message':'Método Http incorrecto'}})
+    return JSONResponse({'error':{'code': 405, 'message':'Método Http inválido'}})
 
 
 
@@ -448,10 +629,68 @@ def forgotten_password(request):
 
 
 
-
+#-------------------------------MAIL AND PUSH-------------------------------
 API_KEY = '23e63458d588b10f67434ac7ca40b40e'
 API_SECRET = '6108aa38fb2fa32124706e65af2b0c5c'
 mailjet = Client(auth=(API_KEY, API_SECRET), version='v3')
+
+def update_fcm_token(request):
+    if request.method == 'POST':
+        data = get_data_from_request(request)
+
+        token = data["token"]
+        new_fcm_token = data["new_fcm_token"]
+
+        try:
+            user = Agent.objects.get(token=token)
+            user.fcm_token = new_fcm_token
+            print("USER", new_fcm_token)
+            return JSONResponse({'user':user})
+        except Agent.DoesNotExist as e:
+            print(e)
+
+        try:
+            focal = EmpresaFocal.objects.get(token=token)
+            focal.fcm_token = new_fcm_token
+            print("FOCAL", new_fcm_token)
+            return JSONResponse({'user':focal})
+        except EmpresaFocal.DoesNotExist as e:
+            print(e)
+
+        return JSONResponse({'error':{'code': 401, 'message':'Token incorrecto'}})
+    return JSONResponse({'error':{'code': 405, 'message':'Método Http inválido'}})
+
+def send_email_accepted(user, solicitude):
+
+    email = {
+        'FromName': 'GEAD APP',
+        'FromEmail': 'anthony.delpozo.m@gmail.com',
+        'Subject': "Solicitud aceptada",
+        'Text-Part': "Hola {}, su solicitud '{}' ha sido aceptada.".format(user.name, solicitude.title),
+        'Recipients': [{'Email': user.email}]
+    }
+    print(email)
+    mailjet.send.create(email)
+
+    # message = messaging.Message(
+    #     data={
+    #         "title":"Solicitud Aceptada",
+    #         "body":"Hola {}, su solicitud '{}' ha sido aceptada.".format(user.name, solicitude.title)
+    #     },
+    #     token= user.fcm_token,
+    # )
+    # response = messaging.send(message)
+
+def send_email_register(user):
+
+    email = {
+        'FromName': 'GEAD APP',
+        'FromEmail': 'anthony.delpozo.m@gmail.com',
+        'Subject': "Cuenta registrada",
+        'Text-Part': "Hola {}, bienvenido a la familia GEAD, su cuenta ha sido creada exitosamente.".format(user['name']),
+        'Recipients': [{'Email': user['email']}]
+    }
+    mailjet.send.create(email)
 
 def send_email(message, solicitude):
 
@@ -462,7 +701,9 @@ def send_email(message, solicitude):
         'Text-Part': message,
         'Recipients': [{'Email': 'delan1997@gmail.com'}]
     }
+    mailjet.send.create(email)
 
+def send_notification():
     message = messaging.Message(
         data={
             "title":"GEAD APP",
@@ -472,22 +713,55 @@ def send_email(message, solicitude):
         },
         topic= "ALL",
     )
-
     response = messaging.send(message)
 
-    #mailjet.send.create(email)
-    # return HttpResponse('')
+
+@csrf_exempt
+def send_massive_notification(request):
+    print(request.POST)
+    body = request.POST["message"]
+
+    if "authorities" in request.POST:
+        print("Sending notification to AUTHORITIES")
+        message = messaging.Message(
+            data={
+                "title":"Mensaje masivo",
+                "body":body
+            },
+            topic= "AUT",
+        )
+        response = messaging.send(message)
+
+    if "focales" in request.POST:
+        print("Sending notification to FOCALES")
+        message = messaging.Message(
+            data={
+                "title":"Mensaje masivo",
+                "body":body
+            },
+            topic= "PFO",
+        )
+        response = messaging.send(message)
+
+    solicitudes = Solicitude.objects.all().order_by('-date')
+    args = {"solicitudes": solicitudes, "message": "Notificación enviada correctamente!"}
+    return render(request,'user/home.html', args)
 
 
 
 
 
-
+#-------------------------------WEB-------------------------------
 
 def index(request):
     print("LOGIN")
     if request.method == 'POST':
-        return redirect('/users/home')
+        username = request.POST['username']
+        password = request.POST['password']
+        if username == "admin" and password == "admin":
+            return redirect('/users/home')
+        else:
+            return render(request,'user/login.html', {"message": "Usuario o contraseña incorrecta"})
     return render(request,'user/login.html')
 
 def home(request):
@@ -495,33 +769,49 @@ def home(request):
     if request.method == 'POST':
         return redirect('/users/home')
 
-    solicitudes = Solicitude.objects.all()
-    args = {"solicitudes": solicitudes}
+    solicitudes = Solicitude.objects.all().order_by('-date')
+    args = {"solicitudes": solicitudes, "media": settings.MEDIA}
     return render(request,'user/home.html', args)
 
 def detail(request, pk_solicitude):
     if request.method == 'POST':
         solicitude = Solicitude.objects.get(pk=pk_solicitude)
 
-        if "select" in request.POST and request.POST["select"] != "0":
-            solicitude.priority = "Prioridad " + request.POST['select']
+        print(request.POST)
+
+        if "select" in request.POST:
+            solicitude.priority = request.POST['select']
         else:
             solicitude = Solicitude.objects.get(pk=pk_solicitude)
             args = {"solicitude": solicitude, "pk_solicitude": pk_solicitude, "message": True}
             return render(request,'user/detail.html', args)
 
-        if "accepted" in request.POST:
+        if "accepted" in request.POST and solicitude.accepted == False:
             solicitude.accepted = request.POST['accepted']
+            send_email_accepted(solicitude.agent, solicitude)
+            print("SOLICITUD ACCEPTED")
+        elif not "accepted" in request.POST:
+            solicitude.accepted = False
 
         if "imgaccepted" in request.POST:
             solicitude.image_accepted = request.POST['imgaccepted']
+        else:
+            solicitude.image_accepted = False
+
+        solicitude.receiver_name = request.POST['name']
+        solicitude.receiver_dni = request.POST['dni']
+        solicitude.receiver_phone = request.POST['phone']
 
         solicitude.save()
 
         return redirect('/users/detail/' + str(pk_solicitude))
 
     solicitude = Solicitude.objects.get(pk=pk_solicitude)
-    args = {"solicitude": solicitude, "pk_solicitude": pk_solicitude}
+    helps = []
+    for item in solicitude.item_set.all():
+        helps.extend([ help for help in item.help_set.all()])
+    print(helps)
+    args = {"solicitude": solicitude, "pk_solicitude": pk_solicitude, "helps": helps, "media": settings.MEDIA}
     return render(request,'user/detail.html', args)
 
 

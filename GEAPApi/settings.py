@@ -23,6 +23,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'kz(xo997ni$0-hqgr4ulmy*jlt*ixmgm$v9wmlaefv$9v1+tmo'
 
 JWT_SECRET_KEY = 'secret'
+HOST = "http://192.168.0.16:8000/"
+MEDIA = HOST + "users/media/"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -40,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'mathfilters',
     'user'
 ]
 
