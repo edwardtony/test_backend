@@ -162,6 +162,7 @@ def user_info(request):
         try:
             agent = Agent.objects.get(token=token)
             print("USER", agent.name)
+            print(agent.as_dict_agent())
             return JSONResponse({'login':{'agent':agent.as_dict_agent()}})
         except Exception as e:
             print(e)
@@ -169,6 +170,7 @@ def user_info(request):
         try:
             focal = EmpresaFocal.objects.get(token=token)
             print("FOCAL", focal.name)
+            print(focal.as_dict_agent())
             return JSONResponse({'login':{'focal':focal.as_dict_agent()}})
         except Exception as e:
             print(e)
@@ -256,6 +258,7 @@ def solicitude_list(request, identifier):
                 solicitudes_dict = [solicitude.as_dict_agent() for solicitude in solicitudes]
 
                 #send_email("SOLICITUD CREADA", solicitude)
+                #send_notification("Nueva solicitud {} creada".format(solicitude.title), solicitude)
                 return JSONResponse({'solicitudes':solicitudes_dict}, status=201)
             return JSONResponse({'error':{'code': 401, 'message':'Datos no válidos '}})
         else:
@@ -703,18 +706,19 @@ def send_email(message, solicitude):
     }
     mailjet.send.create(email)
 
-def send_notification():
+def send_notification(body, solicitude, topic):
     message = messaging.Message(
         data={
             "title":"GEAD APP",
-            "body":message,
+            "body":body,
             "solicitude_id": str(solicitude.pk),
             "image_url": solicitude.image_url,
         },
-        topic= "ALL",
+        topic= topic,
     )
     response = messaging.send(message)
-
+    print("RESPONSE", response)
+    Notification(to="PFO", message="", theme="Nueva Solicitud", solicitude=str(solicitude.pk)).save()
 
 @csrf_exempt
 def send_massive_notification(request):
@@ -732,6 +736,9 @@ def send_massive_notification(request):
         )
         response = messaging.send(message)
 
+        Notification(to="AUT", message=body, theme="Mensaje", solicitude=None).save()
+
+
     if "focales" in request.POST:
         print("Sending notification to FOCALES")
         message = messaging.Message(
@@ -742,6 +749,13 @@ def send_massive_notification(request):
             topic= "PFO",
         )
         response = messaging.send(message)
+
+        Notification(to="PFO", message=body, theme="Mensaje", solicitude=None).save()
+
+
+    # if "authorities" in request.POST and "focales" in request.POST:
+    #     print("NOTIFICACION CREADA")
+    #     Notification(to="ALL", message=body, theme="Mensaje", solicitude=None).save()
 
     solicitudes = Solicitude.objects.all().order_by('-date')
     args = {"solicitudes": solicitudes, "message": "Notificación enviada correctamente!"}
@@ -788,7 +802,8 @@ def detail(request, pk_solicitude):
 
         if "accepted" in request.POST and solicitude.accepted == False:
             solicitude.accepted = request.POST['accepted']
-            send_email_accepted(solicitude.agent, solicitude)
+            #send_email_accepted(solicitude.agent, solicitude)
+            send_notification("Nueva solicitud {} creada".format(solicitude.title), solicitude, "AUT")
             print("SOLICITUD ACCEPTED")
         elif not "accepted" in request.POST:
             solicitude.accepted = False

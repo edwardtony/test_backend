@@ -225,17 +225,20 @@
                                                                                 </div>
                                                                             </div>
                                                                         </div>
-                                                                        <div class="row form-group">
-                                                                            <div class="col col-md-12">
-                                                                                <div class="form-check">
-                                                                                    <div class="checkbox">
-                                                                                        <label for="imgaccepted" class="form-check-label ">
-                                                                                            <input type="checkbox" id="imgaccepted" name="imgaccepted" {% if solicitude.image_accepted %}checked="checked"{% endif %}  value="True" class="form-check-input">Aceptar Imagen
-                                                                                        </label>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
+                                                                        {% if not solicitude.image_url == "" %}
+                                                                          <div class="row form-group">
+                                                                              <div class="col col-md-12">
+                                                                                  <div class="form-check">
+                                                                                      <div class="checkbox">
+                                                                                          <label for="imgaccepted" class="form-check-label ">
+                                                                                              <input type="checkbox" id="imgaccepted" name="imgaccepted" {% if solicitude.image_accepted %}checked="checked"{% endif %}  value="True" class="form-check-input">Aceptar Imagen
+                                                                                          </label>
+                                                                                      </div>
+                                                                                  </div>
+                                                                              </div>
+                                                                          </div>
+                                                                        {% endif %}
+
                                                                         {% if message %}
                                                                             <h5 style="color:red">Debe asignar una prioridad</h5> <br>
                                                                         {% endif %}
