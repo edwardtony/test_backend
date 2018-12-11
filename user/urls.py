@@ -23,6 +23,7 @@ urlpatterns = [
 
 
     path('index/',  views.index, name='index'),
+    path('reset_password/',  views.reset_password, name='reset_password'),
     path('home/',  views.home, name='home'),
     path('detail/<int:pk_solicitude>/',  views.detail, name='detail'),
 ]

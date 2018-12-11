@@ -5,12 +5,12 @@ from datetime import datetime, timedelta
 # Create your models here.
 
 class Agent(models.Model):
-    name = models.CharField(max_length=20)
+    name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=20, default="Apellido")
     email = models.EmailField(max_length=40, unique=True, error_messages= {'unique':"Este correo ya ha sido usado"})
     password = models.CharField(max_length=150)
     identifier = models.CharField(max_length=10, unique=True)
-    phone = models.CharField(max_length=9, unique=False, error_messages= {'unique':"Este teléfono ya ha sido usado"})
+    phone = models.CharField(max_length=9, unique=True, error_messages= {'unique':"Este teléfono ya ha sido usado"})
     photo_url = models.CharField(max_length=100, blank=True)
     token = models.CharField(max_length=175)
     code = models.CharField(max_length=10)
@@ -19,11 +19,11 @@ class Agent(models.Model):
     def as_dict_agent(self, solicitude = True, notification = True):
         result = model_to_dict(self, fields=None, exclude=['password','created_date'])
         if solicitude: result['solicitudes'] = [solicitude.as_dict_agent() for solicitude in Solicitude.objects.filter(closed=False, accepted=True, deadline__gte=datetime.now()).order_by('-id')]
-        if notification: result['notifications'] = [notification.as_dict_agent() for notification in Notification.objects.filter(to__in = ["ALL", "AUT"])]
+        if notification: result['notifications'] = [notification.as_dict_agent() for notification in Notification.objects.filter(to__in = ["ALL", "AUT"]).order_by('-id')]
         return result
 
     def verify_password(self, password):
-    		return pbkdf2_sha256.verify(password,self.password)
+        return pbkdf2_sha256.verify(password,self.password)
 
     def login(credentials):
         userTemp = Agent.objects.get(email=credentials['email'])
@@ -39,11 +39,11 @@ class Agent(models.Model):
 
 class EmpresaFocal(models.Model):
 
-    name = models.CharField(max_length=20)
+    name = models.CharField(max_length=100)
     email = models.EmailField(max_length=40, unique=True, error_messages= {'unique':"Este correo ya ha sido usado"})
     password = models.CharField(max_length=150)
     identifier = models.CharField(max_length=11)
-    phone = models.CharField(max_length=9, unique=False, error_messages= {'unique':"Este teléfono ya ha sido usado"})
+    phone = models.CharField(max_length=9, unique=True, error_messages= {'unique':"Este teléfono ya ha sido usado"})
     photo_url = models.CharField(max_length=100, blank=True)
     token = models.CharField(max_length=175)
     code = models.CharField(max_length=10)
@@ -64,7 +64,7 @@ class EmpresaFocal(models.Model):
     def as_dict_agent(self, solicitude = True, notification = True):
         result = model_to_dict(self, fields=None, exclude=['password'])
         if solicitude: result['solicitudes'] = [solicitude.as_dict_agent() for solicitude in Solicitude.objects.filter(closed=False, accepted=True, deadline__gte=datetime.now()).order_by('-id')]
-        if notification: result['notifications'] = [notification.as_dict_agent() for notification in Notification.objects.filter(to__in = ["ALL", "PFO"])]
+        if notification: result['notifications'] = [notification.as_dict_agent() for notification in Notification.objects.filter(to__in = ["ALL", "PFO"]).order_by('-id')]
         return result
 
     def __str__(self):
@@ -73,6 +73,7 @@ class EmpresaFocal(models.Model):
 class CodeAccount(models.Model):
     code = models.CharField(max_length=10, unique=True)
     image = models.CharField(max_length=30)
+    used = models.BooleanField(default=False)
 
 class Authority(models.Model):
 
@@ -150,11 +151,13 @@ class Notification(models.Model):
     to = models.CharField(max_length=150)
     message = models.CharField(max_length=600)
     theme = models.CharField(max_length=20)
-    solicitude = models.CharField(max_length=10, blank=True, null=True)
+    solicitude = models.ForeignKey(Solicitude, on_delete=models.CASCADE, blank=True, null=True)
     date = models.DateTimeField(default=datetime.now)
 
     def as_dict_agent(self):
         result = model_to_dict(self, fields=None, exclude=None)
+        if self.solicitude:
+            result['solicitude'] = self.solicitude.as_dict_agent()
         return result
 
     def __str__(self):

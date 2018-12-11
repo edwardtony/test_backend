@@ -13,6 +13,7 @@ from openpyxl.styles import PatternFill
 from user.serializers import *
 from user.models import *
 from datetime import datetime, timedelta
+from django.utils import timezone
 import requests
 import random
 import json
@@ -105,10 +106,28 @@ def register(request):
         prefix = user['code'][0:3]
         if prefix == "AUT":
             print("AUT")
-            serializer = AgentSerializer(data=user)
+            try:
+                code = CodeAccount.objects.get(code=user['code'])
+                print(code)
+                if code.used:
+                    return JSONResponse({'error':{'code': 401, 'message':'Código usado'}})
+                else:
+                    serializer = AgentSerializer(data=user)
+            except Exception as e:
+                return JSONResponse({'error':{'code': 401, 'message':'Código incorrecto'}})
         elif prefix == "PFO":
             print("PFO")
-            serializer = EmpresaFocalSerializer(data=user)
+            try:
+                code = CodeAccount.objects.get(code=user['code'])
+                print(code)
+                if code.used:
+                    return JSONResponse({'error':{'code': 401, 'message':'Código usado'}})
+                else:
+                    user["photo_url"] = code.image
+                    serializer = EmpresaFocalSerializer(data=user)
+            except Exception as e:
+                return JSONResponse({'error':{'code': 401, 'message':'Código incorrecto'}})
+
         else:
             return JSONResponse({'error':{'code': 401, 'message':'Código incorrecto'}})
 
@@ -118,12 +137,14 @@ def register(request):
             except ValidationError as e:
                 return JSONResponse({'error':{'code': 401, 'message':'Correo electrónico con formato incorrecto'}})
             serializer.save()
-            #user_return = Agent.objects.get(pk= serializer.data['id'])
-            #return JSONResponse(user_return.as_dict_agent(), status=201)
-            print(user)
-            send_email_register(user)
+            code.used = True
+            code.save()
+            #send_email_register(user)
             return JSONResponse({})
-        return JSONResponse({'error':{'code': 401, 'message':'Este correo ya ha sido usado'}})
+        if "phone" in serializer.errors:
+            return JSONResponse({'error':{'code': 401, 'message':'Este teléfono ya ha sido usado'}})
+        else:
+            return JSONResponse({'error':{'code': 401, 'message':'Este correo ya ha sido usado'}})
     return JSONResponse({'error':{'code': 405, 'message':'Método Http inválido'}})
 
 @csrf_exempt
@@ -349,7 +370,7 @@ def solicitude_detail(request, identifier, pk_solicitude):
 
         if solicitude.item_set.all().exclude(remaining=0).count() == 0:
             solicitude.change_to_closed()
-        send_email("DONACIÓN REALIZADA", solicitude)
+        #send_email("DONACIÓN REALIZADA", solicitude)
         return JSONResponse({}, status=200)
     else:
         return JSONResponse({'error':{'code': 405, 'message':'Método Http inválido'}})
@@ -376,6 +397,7 @@ def update_item(request, identifier, pk_solicitude, pk_item):
 
         if solicitude.item_set.all().exclude(remaining=0).count() == 0:
             solicitude.change_to_closed()
+            send_email_closed('Hola {}, tu solicitud "{}" ha sido cubierta por completo.'.format(solicitude.agent.name, solicitude.title), solicitude.agent )
         #send_email("DONACIÓN REALIZADA", solicitude)
         return JSONResponse({"solicitude": solicitude.as_dict_agent()})
     else:
@@ -596,8 +618,35 @@ def export_excel(request):
 def forgotten_password(request):
     if request.method == 'POST':
         data = get_data_from_request(request)
-        send_email("Se ha enviado un correo a {} para que reinicie su cuenta".format(data['email']), None)
-        return JSONResponse({},status=200)
+        try:
+            agent = Agent.objects.get(email=data['email'])
+            payload = {
+                "email": agent.email,
+                "exp": (timezone.now() + timezone.timedelta(hours=2)).timestamp()
+            }
+            _token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm='HS256').decode("utf-8")
+            send_forgotten_password(
+            "Hola {}, dirígase al siguiente link para poder reestablecer su contraseña: \n {}".format(agent.name, settings.HOST + "users/reset_password/?token=" + _token), agent
+            )
+            return JSONResponse({},status=200)
+        except Agent.DoesNotExist as e:
+            print(e)
+
+        print(credentials)
+        try:
+            focal = EmpresaFocal.objects.get(email=data['email'])
+            payload = {
+                "email": focal.email,
+                "exp": (timezone.now() + timezone.timedelta(hours=2)).timestamp()
+            }
+            _token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm='HS256').decode("utf-8")
+            send_forgotten_password(
+            "Hola {}, dirígase al siguiente link para poder reestablecer su contraseña: \n {}".format(focal.name, settings.HOST + "users/reset_password/?" + _token), focal
+            )
+            return JSONResponse({},status=200)
+        except EmpresaFocal.DoesNotExist as e:
+            print(e)
+        return JSONResponse({'error':{'code': 401, 'message':'Este correo no está registrado'}})
     return JSONResponse({'error':{'code': 405, 'message':'Método Http inválido'}})
 
 
@@ -706,6 +755,29 @@ def send_email(message, solicitude):
     }
     mailjet.send.create(email)
 
+def send_email_closed(message, agent):
+
+    email = {
+        'FromName': 'GEAD APP',
+        'FromEmail': 'anthony.delpozo.m@gmail.com',
+        'Subject': message,
+        'Text-Part': message,
+        'Recipients': [{'Email': agent.email}]
+    }
+    mailjet.send.create(email)
+
+def send_forgotten_password(message, user):
+
+    email = {
+        'FromName': 'GEAD APP',
+        'FromEmail': 'anthony.delpozo.m@gmail.com',
+        'Subject': "Recuperar contraseña",
+        'Text-Part': message,
+        'Recipients': [{'Email': user.email}]
+    }
+    mailjet.send.create(email)
+
+
 def send_notification(body, solicitude, topic):
     message = messaging.Message(
         data={
@@ -718,13 +790,12 @@ def send_notification(body, solicitude, topic):
     )
     response = messaging.send(message)
     print("RESPONSE", response)
-    Notification(to="PFO", message="", theme="Nueva Solicitud", solicitude=str(solicitude.pk)).save()
+    Notification(to="PFO", message="", theme="Nueva Solicitud", solicitude=solicitude).save()
 
 @csrf_exempt
 def send_massive_notification(request):
-    print(request.POST)
     body = request.POST["message"]
-
+    print(body)
     if "authorities" in request.POST:
         print("Sending notification to AUTHORITIES")
         message = messaging.Message(
@@ -778,6 +849,47 @@ def index(request):
             return render(request,'user/login.html', {"message": "Usuario o contraseña incorrecta"})
     return render(request,'user/login.html')
 
+def reset_password(request):
+    print("reset_password")
+    if request.method == 'GET':
+        try:
+            jwt.decode(request.GET['token'], settings.JWT_SECRET_KEY)['email']
+            return render(request, 'user/reset_password.html')
+        except Exception as e:
+            return redirect('users:index')
+    elif request.method == 'POST':
+        data = request.POST.dict()
+        token = request.GET['token']
+        email = jwt.decode(token, settings.JWT_SECRET_KEY)['email']
+
+        try:
+            agent = Agent.objects.get(email=email)
+            agent.password = pbkdf2_sha256.encrypt(data['password'],rounds=12000,salt_size=32)
+            agent.save()
+        except Agent.DoesNotExist as e:
+            print(e)
+
+        try:
+            focal = EmpresaFocal.objects.get(email=email)
+            focal.password = pbkdf2_sha256.encrypt(data['password'],rounds=12000,salt_size=32)
+            focal.save()
+        except EmpresaFocal.DoesNotExist as e:
+            print(e)
+        args = {"message": "Tu contraseña ha sido actualizada"}
+        return render(request, 'user/reset_password.html', args )
+    else:
+        return HttpResponse(status= 405)
+
+
+    # if request.method == 'POST':
+    #     username = request.POST['username']
+    #     password = request.POST['password']
+    #     if username == "admin" and password == "admin":
+    #         return redirect('/users/home')
+    #     else:
+    #         return render(request,'user/login.html', {"message": "Usuario o contraseña incorrecta"})
+    # return render(request,'user/login.html')
+
 def home(request):
     print("HOME")
     if request.method == 'POST':
@@ -802,8 +914,8 @@ def detail(request, pk_solicitude):
 
         if "accepted" in request.POST and solicitude.accepted == False:
             solicitude.accepted = request.POST['accepted']
-            #send_email_accepted(solicitude.agent, solicitude)
-            send_notification("Nueva solicitud {} creada".format(solicitude.title), solicitude, "AUT")
+            send_email_accepted(solicitude.agent, solicitude)
+            send_notification("Nueva solicitud {} creada".format(solicitude.title), solicitude, "PFO")
             print("SOLICITUD ACCEPTED")
         elif not "accepted" in request.POST:
             solicitude.accepted = False
