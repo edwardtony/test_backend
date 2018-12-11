@@ -239,7 +239,7 @@
         }
 
 				$.post({
-						url: "http://192.168.0.13:8000/users/send_massive_notification/",
+						url: window.location.origin + "/users/send_massive_notification/",
 						data : data,
             success : function(){
               $('alert-body').css("display", "block")
