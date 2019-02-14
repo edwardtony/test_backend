@@ -72,8 +72,11 @@ class EmpresaFocal(models.Model):
 
 class CodeAccount(models.Model):
     code = models.CharField(max_length=10, unique=True)
-    image = models.CharField(max_length=30)
+    image = models.CharField(max_length=40)
     used = models.BooleanField(default=False)
+
+    def __str__(self):
+        return "Código: {}, Usado: {}".format(self.code, self.used )
 
 class Authority(models.Model):
 
@@ -114,7 +117,7 @@ class Solicitude(models.Model):
     )
 
     agent = models.ForeignKey(Agent, on_delete=models.CASCADE)
-    authority = models.ForeignKey(Authority, on_delete=models.CASCADE)
+    # authority = models.ForeignKey(Authority, on_delete=models.CASCADE)
     title = models.CharField(max_length=30)
     emergency = models.CharField(max_length=30)
     district = models.CharField(max_length=40)
@@ -139,7 +142,7 @@ class Solicitude(models.Model):
     def as_dict_agent(self):
         result = model_to_dict(self, fields=None, exclude=None)
         result['agent'] = self.agent.as_dict_agent(False, False)
-        result['authority'] = self.authority.as_dict_agent()
+        # result['authority'] = self.authority.as_dict_agent()
         result['product_list'] = [item.as_dict_agent() for item in self.item_set.all()]
         return result
 

@@ -37,7 +37,7 @@
     </style>
 </head>
 
-<body class="animsition">
+<body >
   <div class="modal fade" tabindex="-1" role="dialog" id="notificationModal">
     <div class="modal-dialog" role="document">
       <div class="modal-content">
@@ -170,7 +170,7 @@
         <!-- MENU SIDEBAR-->
         <aside class="menu-sidebar d-none d-lg-block">
             <div class="logo">
-                <a href="#">
+                <a href="{% url 'users:home' %}">
                     <img src="{% static 'images/icon/logo.png' %}" alt="Cool Admin" />
                 </a>
             </div>
@@ -178,7 +178,7 @@
                 <nav class="navbar-sidebar">
                     <ul class="list-unstyled navbar__list">
                         <li class="has-sub">
-                            <a class="js-arrow" href="{% url 'users:home' %}">
+                            <a class="" href="{% url 'users:home' %}">
                                 <i class="fas fa-tachometer-alt"></i>Lista de Solicitudes
                             </a>
                         </li>
@@ -237,6 +237,8 @@
         if ( focales ){
           data["focales"] = focales
         }
+
+        console.log(data)
 
 				$.post({
 						url: window.location.origin + "/users/send_massive_notification/",

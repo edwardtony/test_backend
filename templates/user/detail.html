@@ -22,13 +22,13 @@
                         Mensaje masivo
                     </a>
                     <div class="header-button">
-                        <div class="account-wrap">
+                        <div class="account-wrap" style="position: absolute; right: 20px">
                             <div class="account-item clearfix js-item-menu">
                                 <div class="image">
                                     <img src="{% static 'images/logo.png' %}" alt="Logo GEAD" />
                                 </div>
                                 <div class="content">
-                                    <a class="js-acc-btn" href="#">Agente</a>
+                                    <a class="js-acc-btn" href="#">Administrador</a>
                                 </div>
                                 <div class="account-dropdown js-dropdown">
                                     <div class="info clearfix">
@@ -39,13 +39,13 @@
                                         </div>
                                         <div class="content">
                                             <h5 class="name">
-                                                <a href="#">Agente</a>
+                                                <a href="#">Administrador</a>
                                             </h5>
-                                            <span class="email">agente@gmail.com</span>
+                                            <!-- <span class="email">agente@gmail.com</span> -->
                                         </div>
                                     </div>
                                     <div class="account-dropdown__footer">
-                                        <a href="{% url 'users:index' %}">
+                                        <a href="{% url 'users:logout' %}">
                                           <i class="zmdi zmdi-power"></i>Salir
                                         </a>
                                     </div>
@@ -80,7 +80,7 @@
                                                 <div class="avatar avatar--small">
                                                   {% if not solicitude.image_url == "" %}
                                                       <!-- <img src="https://gead-app.herokuapp.com/users/media/{{solicitude.image_url}}" > -->
-                                                      <img src="{{media}}{{solicitude.image_url}}" >
+                                                      <img src="../../media/{{solicitude.image_url}}" >
                                                   {% else %}
                                                       <img src="{% static 'images/logo.png' %}" >
                                                   {% endif %}
@@ -257,7 +257,7 @@
                                                                     <h4>Imagen</h4> <br/>
                                                                     {% if not solicitude.image_url == "" %}
                                                                         <!-- <img src="https://gead-app.herokuapp.com/users/media/{{solicitude.image_url}}" > -->
-                                                                        <img src="{{media}}{{solicitude.image_url}}" >
+                                                                        <img src="../../media/{{solicitude.image_url}}" >
                                                                     {% else %}
                                                                         <b>No hay imagen</b><br/>
                                                                     {% endif %}

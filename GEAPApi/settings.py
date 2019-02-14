@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 """
 
 import os
+import dj_database_url
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -23,9 +24,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'kz(xo997ni$0-hqgr4ulmy*jlt*ixmgm$v9wmlaefv$9v1+tmo'
 
 JWT_SECRET_KEY = 'secret'
-#HOST = "http://192.168.0.20:8000/"
-HOST = "https://gead-app.herokuapp.com/"
-MEDIA = HOST + "users/media/"
+#HOST = "http://192.168.0.10:8000/"
+# HOST = "https://gead-app.herokuapp.com/"
+# MEDIA = HOST + "users/media/"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -81,13 +82,16 @@ WSGI_APPLICATION = 'GEAPApi.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+#     }
+# }
 
+DATABASES = {
+    "default": dj_database_url.config(default="postgres://oobspeitfzpguf:513d694d14eceedd84ac341654bd7a5364cfe54f7122950ebc3b6f5c7c16c001@ec2-75-101-138-165.compute-1.amazonaws.com:5432/d584lqa2bjv5ra")
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/2.1/ref/settings/#auth-password-validators

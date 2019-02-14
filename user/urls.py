@@ -11,6 +11,7 @@ urlpatterns = [
     path('send_massive_notification/', views.send_massive_notification, name="send_massive_notification"),
     path('register/', views.register, name="register"),
     path('login/', views.login),
+    path('logout/', views.logout, name="logout"),
 	path('user_info/', views.user_info),
 	path('upload_image/', views.upload_image),
 	path('forgotten_password/', views.forgotten_password),
@@ -27,6 +28,4 @@ urlpatterns = [
     path('home/',  views.home, name='home'),
     path('detail/<int:pk_solicitude>/',  views.detail, name='detail'),
 ]
-
-
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -27,38 +27,47 @@ from firebase_admin import credentials, messaging
 
 
 # Create your views here.
-
+#
+# CodeAccount(code="PFO4819380", image="users/CONFIEP.png").save()
+# CodeAccount(code="PFO9294795", image="users/SARCC.png").save()
+# CodeAccount(code="PFO9833938", image="users/PERÚCAMARAS.png").save()
+# CodeAccount(code="PFO7461508", image="users/SNI.png").save()
+# CodeAccount(code="PFO9635980", image="users/SNMPE.png").save()
+# CodeAccount(code="PFO1293902", image="users/SNP.png").save()
+# CodeAccount(code="PFO8015687", image="users/APESEG.png").save()
+# CodeAccount(code="PFO5407593", image="users/CANATUR.png").save()
+# CodeAccount(code="PFO8709620", image="users/CAPECO.png").save()
+# CodeAccount(code="PFO2270144", image="users/CCL.png").save()
+# CodeAccount(code="PFO5133451", image="users/ASBANC.png").save()
+# CodeAccount(code="AUT1729571", image="").save()
+# CodeAccount(code="AUT9374612", image="").save()
+# CodeAccount(code="AUT1471237", image="").save()
+# CodeAccount(code="AUT1927316", image="").save()
+# CodeAccount(code="AUT9237412", image="").save()
+# CodeAccount(code="AUT6348341", image="").save()
+# CodeAccount(code="AUT8246192", image="").save()
+# CodeAccount(code="AUT2715718", image="").save()
+# CodeAccount(code="AUT8746192", image="").save()
+# CodeAccount(code="AUT6410273", image="").save()
+# CodeAccount(code="AUT7162381", image="").save()
+# CodeAccount(code="AUT2187213", image="").save()
+# CodeAccount(code="AUT3450127", image="").save()
+# CodeAccount(code="AUT8263171", image="").save()
+# CodeAccount(code="AUT6481293", image="").save()
+# CodeAccount(code="AUT9162361", image="").save()
+# CodeAccount(code="AUT6182323", image="").save()
+# CodeAccount(code="AUT9252891", image="").save()
+# CodeAccount(code="AUT6182868", image="").save()
+# CodeAccount(code="AUT6517823", image="").save()
+# CodeAccount(code="AUT9762612", image="").save()
+# CodeAccount(code="AUT7615283", image="").save()
+# CodeAccount(code="AUT8616232", image="").save()
+# CodeAccount(code="AUT6528915", image="").save()
+# CodeAccount(code="AUT5288255", image="").save()
 
 #-------------------------------GLOBAL VARIABLES-------------------------------
-
-
-cred = credentials.Certificate("geadapp-firebase-adminsdk-x2a5s-df26e617a9.json")
+cred = credentials.Certificate("gaed-812dc-firebase-adminsdk-etqv6-c5c695567a.json")
 firebase_admin.initialize_app(cred)
-
-message = messaging.Message(
-    data={
-        "title":"GEAD APP",
-        "body":"Soy el cuerpo de la notificación",
-        "solicitude_id": "21",
-    },
-    topic= "ALL",
-)
-
-
-# message = messaging.Message(
-#     android=messaging.AndroidConfig(
-#         ttl= timedelta(seconds=0),
-#         priority='high',
-#         data={
-#             "title":"Hola desde el server",
-#             "body":"Soy el cuerpo de la notificación",
-#         }
-#     ),
-#     topic= "ALL",
-# )
-
-# response = messaging.send(message)
-# print('Successfully sent message:', response)
 
 #-------------------------------UTILS-------------------------------
 
@@ -108,7 +117,6 @@ def register(request):
             print("AUT")
             try:
                 code = CodeAccount.objects.get(code=user['code'])
-                print(code)
                 if code.used:
                     return JSONResponse({'error':{'code': 401, 'message':'Código usado'}})
                 else:
@@ -119,7 +127,6 @@ def register(request):
             print("PFO")
             try:
                 code = CodeAccount.objects.get(code=user['code'])
-                print(code)
                 if code.used:
                     return JSONResponse({'error':{'code': 401, 'message':'Código usado'}})
                 else:
@@ -153,7 +160,6 @@ def login(request):
 
     if request.method == 'POST':
         credentials = get_data_from_request(request)
-        print("credentials", credentials)
         try:
             user = Agent.login(credentials)
             token = user.token
@@ -162,7 +168,6 @@ def login(request):
         except Agent.DoesNotExist as e:
             print(e)
 
-        print(credentials)
         try:
             focal = EmpresaFocal.login(credentials)
             token = focal.token
@@ -179,11 +184,9 @@ def user_info(request):
     if request.method == 'GET':
         if 'HTTP_AUTHORIZATION' not in request.META: return JSONResponse({'error':{'code': 403, 'message':'Error de autorización'}}, status=403)
         token = request.META['HTTP_AUTHORIZATION'].split(" ")[1]
-        print(token)
         try:
             agent = Agent.objects.get(token=token)
             print("USER", agent.name)
-            print(agent.as_dict_agent())
             return JSONResponse({'login':{'agent':agent.as_dict_agent()}})
         except Exception as e:
             print(e)
@@ -280,7 +283,9 @@ def solicitude_list(request, identifier):
 
                 #send_email("SOLICITUD CREADA", solicitude)
                 #send_notification("Nueva solicitud {} creada".format(solicitude.title), solicitude)
+                print({'solicitudes':solicitudes_dict})
                 return JSONResponse({'solicitudes':solicitudes_dict}, status=201)
+            print(serializer.errors)
             return JSONResponse({'error':{'code': 401, 'message':'Datos no válidos '}})
         else:
             return JSONResponse({'error':{'code': 401, 'message':'Correo o contraseña incorrecto'}})
@@ -360,10 +365,8 @@ def solicitude_detail(request, identifier, pk_solicitude):
         help = Help(name=data['name'], RUC_or_DNI=data['ruc_or_dni'], empresa_focal=empresa_focal, solicitude=solicitude)
         help.save()
 
-        print("0s", solicitude.item_set.all().exclude(remaining=0).count())
         amount_list = json.loads(data['product_list'])
         for (index, item) in enumerate(solicitude.item_set.all().exclude(remaining=0)):
-            print(index, item)
             HelpItem(help= help, item= item, amount= amount_list[index]).save()
             item.remaining = item.remaining - amount_list[index]
             item.save()
@@ -381,7 +384,6 @@ def update_item(request, identifier, pk_solicitude, pk_item):
         solicitude = Solicitude.objects.filter(pk=pk_solicitude).first()
         empresa_focal = EmpresaFocal.objects.filter(identifier=identifier).first()
         item = solicitude.item_set.get(pk=pk_item)
-        print("ITEM", item)
         if solicitude.closed:
             return JSONResponse({'error':{'code': 401, 'message':'La solicitud ya ha sido cerrada'}})
 
@@ -408,11 +410,9 @@ def update_item(request, identifier, pk_solicitude, pk_item):
 def upload_image(request):
     if request.method == 'POST' and request.FILES['upload']:
         image = request.FILES['upload']
-        print("IMAGE", image)
         fs = FileSystemStorage()
         path = str(random.randint(0,9999999999)) + ".png"
         filename = fs.save(path, image)
-        print("FILENAME", filename)
         return JSONResponse({'image_url': filename}, status=201)
     return JSONResponse({'error':{'code': 405, 'message':'Método Http inválido'}})
 
@@ -424,8 +424,6 @@ def export_excel(request):
     if request.method == 'GET':
         closed = request.GET["closed"]
         period = request.GET["period"]
-
-        print(datetime.today().weekday())
 
         current = {
             "week":datetime.today().weekday(),
@@ -632,7 +630,6 @@ def forgotten_password(request):
         except Agent.DoesNotExist as e:
             print(e)
 
-        print(credentials)
         try:
             focal = EmpresaFocal.objects.get(email=data['email'])
             payload = {
@@ -684,7 +681,32 @@ def forgotten_password(request):
 #-------------------------------MAIL AND PUSH-------------------------------
 API_KEY = '23e63458d588b10f67434ac7ca40b40e'
 API_SECRET = '6108aa38fb2fa32124706e65af2b0c5c'
-mailjet = Client(auth=(API_KEY, API_SECRET), version='v3')
+mailjet = Client(auth=(API_KEY, API_SECRET), version='v3.1')
+
+data = {
+  'Messages': [
+                {
+                        "From": {
+                                "Email": "anthony.delpozo.m@gmail.com",
+                                "Name": "Anthony Del Pozo"
+                        },
+                        "To": [
+                                {
+                                        "Email": "delan1997@gmail.com",
+                                        "Name": "passenger 1"
+                                }
+                        ],
+                        "TemplateID": 622922,
+                        "TemplateLanguage": True,
+                        "Subject": "Your email flight plan!",
+                        "TextPart": "Dear passenger 1, welcome to Mailjet! May the delivery force be with you!",
+                        "HTMLPart": "<h3 style='color:red; border: 1px solid blue; padding:10px; margin:20px'>Dear passenger 1, welcome to Mailjet!</h3><br />May the delivery force be with you!"
+                }
+        ]
+}
+# result = mailjet.send.create(data=data)
+# print(result.status_code)
+# print(result.__dict__)
 
 def update_fcm_token(request):
     if request.method == 'POST':
@@ -713,7 +735,7 @@ def update_fcm_token(request):
     return JSONResponse({'error':{'code': 405, 'message':'Método Http inválido'}})
 
 def send_email_accepted(user, solicitude):
-
+    pass
     email = {
         'FromName': 'GEAD APP',
         'FromEmail': 'anthony.delpozo.m@gmail.com',
@@ -734,7 +756,7 @@ def send_email_accepted(user, solicitude):
     # response = messaging.send(message)
 
 def send_email_register(user):
-
+    pass
     email = {
         'FromName': 'GEAD APP',
         'FromEmail': 'anthony.delpozo.m@gmail.com',
@@ -745,7 +767,7 @@ def send_email_register(user):
     mailjet.send.create(email)
 
 def send_email(message, solicitude):
-
+    pass
     email = {
         'FromName': 'GEAD APP',
         'FromEmail': 'anthony.delpozo.m@gmail.com',
@@ -756,7 +778,7 @@ def send_email(message, solicitude):
     mailjet.send.create(email)
 
 def send_email_closed(message, agent):
-
+    pass
     email = {
         'FromName': 'GEAD APP',
         'FromEmail': 'anthony.delpozo.m@gmail.com',
@@ -767,7 +789,7 @@ def send_email_closed(message, agent):
     mailjet.send.create(email)
 
 def send_forgotten_password(message, user):
-
+    pass
     email = {
         'FromName': 'GEAD APP',
         'FromEmail': 'anthony.delpozo.m@gmail.com',
@@ -806,6 +828,7 @@ def send_massive_notification(request):
             topic= "AUT",
         )
         response = messaging.send(message)
+        print("RESPONSE", response)
 
         Notification(to="AUT", message=body, theme="Mensaje", solicitude=None).save()
 
@@ -820,6 +843,7 @@ def send_massive_notification(request):
             topic= "PFO",
         )
         response = messaging.send(message)
+        print("RESPONSE", response)
 
         Notification(to="PFO", message=body, theme="Mensaje", solicitude=None).save()
 
@@ -839,15 +863,30 @@ def send_massive_notification(request):
 #-------------------------------WEB-------------------------------
 
 def index(request):
-    print("LOGIN")
     if request.method == 'POST':
         username = request.POST['username']
         password = request.POST['password']
-        if username == "admin" and password == "admin":
+        if username == "aplicativogead" and password == "Aplicativogead2019":
+            print("ADENTRO")
+            request.session['logged'] = True
             return redirect('/users/home')
         else:
             return render(request,'user/login.html', {"message": "Usuario o contraseña incorrecta"})
+    elif request.method == 'GET':
+        if request.session.has_key('logged'):
+            if request.session['logged']:
+                return redirect('/users/home')
     return render(request,'user/login.html')
+
+
+def logout(request):
+    if request.method == 'GET':
+        if request.session.has_key('logged'):
+            del request.session['logged']
+            return redirect('/users/index')
+        return redirect('/users/index')
+
+
 
 def reset_password(request):
     print("reset_password")
@@ -891,19 +930,23 @@ def reset_password(request):
     # return render(request,'user/login.html')
 
 def home(request):
+    # return JSONResponse(CodeAccount.objects.all().values_list("code", "image"))
     print("HOME")
     if request.method == 'POST':
         return redirect('/users/home')
-
-    solicitudes = Solicitude.objects.all().order_by('-date')
-    args = {"solicitudes": solicitudes, "media": settings.MEDIA}
-    return render(request,'user/home.html', args)
+    elif request.method == 'GET':
+        if request.session.has_key('logged'):
+            logged = request.session['logged']
+            if logged:
+                solicitudes = Solicitude.objects.all().order_by('-date')
+                args = {"solicitudes": solicitudes}
+                return render(request,'user/home.html', args)
+            return redirect('/users/index')
+        return redirect('/users/index')
 
 def detail(request, pk_solicitude):
     if request.method == 'POST':
         solicitude = Solicitude.objects.get(pk=pk_solicitude)
-
-        print(request.POST)
 
         if "select" in request.POST:
             solicitude.priority = request.POST['select']
@@ -937,16 +980,5 @@ def detail(request, pk_solicitude):
     helps = []
     for item in solicitude.item_set.all():
         helps.extend([ help for help in item.help_set.all()])
-    print(helps)
-    args = {"solicitude": solicitude, "pk_solicitude": pk_solicitude, "helps": helps, "media": settings.MEDIA}
+    args = {"solicitude": solicitude, "pk_solicitude": pk_solicitude, "helps": helps}
     return render(request,'user/detail.html', args)
-
-
-
-
-
-
-
-
-
-#
