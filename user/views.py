@@ -66,7 +66,7 @@ from firebase_admin import credentials, messaging
 # CodeAccount(code="AUT5288255", image="").save()
 
 #-------------------------------GLOBAL VARIABLES-------------------------------
-cred = credentials.Certificate("gaed-812dc-firebase-adminsdk-etqv6-c5c695567a.json")
+cred = credentials.Certificate("geadapp-3cbcc-firebase-adminsdk-kudmc-be300e964a.json")
 firebase_admin.initialize_app(cred)
 
 #-------------------------------UTILS-------------------------------
