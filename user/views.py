@@ -866,7 +866,7 @@ def index(request):
     if request.method == 'POST':
         username = request.POST['username']
         password = request.POST['password']
-        if username == "aplicativogead" and password == "Aplicativogead2019":
+        if username == "admin" and password == "admin":
             print("ADENTRO")
             request.session['logged'] = True
             return redirect('/users/home')
