@@ -7,7 +7,7 @@ chardet==3.0.4
 dj-database-url==0.4.2
 Django==2.1.2
 django-mathfilters==0.4.0
-djangorestframework==3.9.0
+djangorestframework==3.11.2
 et-xmlfile==1.0.1
 firebase-admin==2.13.0
 gast==0.2.0
